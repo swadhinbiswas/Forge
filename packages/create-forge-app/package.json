@@ -1,0 +1,35 @@
+{
+  "name": "create-forge-app",
+  "version": "2.0.0",
+  "description": "Scaffold Forge applications from npm",
+  "license": "MIT",
+  "homepage": "https://forge-framework.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/forge-framework/forge.git",
+    "directory": "packages/create-forge-app"
+  },
+  "bugs": {
+    "url": "https://github.com/forge-framework/forge/issues"
+  },
+  "type": "module",
+  "bin": {
+    "create-forge-app": "./bin/create-forge-app.js"
+  },
+  "files": [
+    "bin/create-forge-app.js",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "forge",
+    "scaffold",
+    "desktop",
+    "starter"
+  ]
+}

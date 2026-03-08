@@ -1,0 +1,38 @@
+{
+  "name": "@forge/api",
+  "version": "2.0.0",
+  "description": "Typed JavaScript API bindings for Forge applications",
+  "license": "MIT",
+  "homepage": "https://forge-framework.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/forge-framework/forge.git",
+    "directory": "packages/api"
+  },
+  "bugs": {
+    "url": "https://github.com/forge-framework/forge/issues"
+  },
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "forge",
+    "desktop",
+    "ipc",
+    "webview"
+  ]
+}
