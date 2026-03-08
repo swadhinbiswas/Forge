@@ -1,0 +1,60 @@
+{
+  "tasks": [
+    {
+      "completed": true,
+      "created_at": "2026-03-07T23:20:25.672009+00:00",
+      "description": "Finish the full-stack task manager example and validate it.",
+      "due_date": "2026-03-08",
+      "id": "1b5f2c02-07c7-48b5-86ef-238c36feb0d0",
+      "priority": "high",
+      "tags": [
+        "forge",
+        "release"
+      ],
+      "title": "Ship Forge Todo example",
+      "updated_at": "2026-03-08T05:17:51.389770+00:00",
+      "updated_at_epoch": 1772947071.389804
+    },
+    {
+      "completed": false,
+      "created_at": "2026-03-07T23:20:25.672514+00:00",
+      "description": "Map release automation work to installer and notarization milestones.",
+      "due_date": null,
+      "id": "38f33b60-3f04-439e-8138-8db05d6f4ce6",
+      "priority": "medium",
+      "tags": [
+        "planning"
+      ],
+      "title": "Review updater roadmap",
+      "updated_at": "2026-03-07T23:20:25.672514+00:00",
+      "updated_at_epoch": 1772925625.672523
+    },
+    {
+      "completed": false,
+      "created_at": "2026-03-07T23:20:25.672804+00:00",
+      "description": "Add keyboard shortcuts, empty states, and completion feedback.",
+      "due_date": null,
+      "id": "28d34dc6-1f91-49de-a528-4b229f1099f7",
+      "priority": "low",
+      "tags": [
+        "ux"
+      ],
+      "title": "Polish desktop UX",
+      "updated_at": "2026-03-07T23:20:25.672804+00:00",
+      "updated_at_epoch": 1772925625.672811
+    },
+    {
+      "completed": false,
+      "created_at": "2026-03-07T23:21:03.489686+00:00",
+      "description": "",
+      "due_date": null,
+      "id": "b70fab8e-77af-4eaa-b11d-b5a5fbe1f23d",
+      "priority": "medium",
+      "tags": [],
+      "title": "jdhsdjsjdhjhdjhdjhsjdhdh",
+      "updated_at": "2026-03-07T23:21:03.489686+00:00",
+      "updated_at_epoch": 1772925663.489693
+    }
+  ],
+  "version": 1
+}

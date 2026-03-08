@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge API Explorer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>⚡ API Explorer</h1>
+                <p>Forge Framework v1.0.0</p>
+            </div>
+            
+            <div class="nav-sections">
+                <div class="nav-section">
+                    <h3>System</h3>
+                    <ul>
+                        <li onclick="loadDemo('system-info')">System Info</li>
+                        <li onclick="loadDemo('app-version')">App Version</li>
+                        <li onclick="loadDemo('timestamp')">Timestamp</li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Clipboard</h3>
+                    <ul>
+                        <li onclick="loadDemo('clipboard-read')">Read</li>
+                        <li onclick="loadDemo('clipboard-write')">Write</li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>File System</h3>
+                    <ul>
+                        <li onclick="loadDemo('fs-list')">List Directory</li>
+                        <li onclick="loadDemo('fs-read')">Read File</li>
+                        <li onclick="loadDemo('fs-write')">Write File</li>
+                        <li onclick="loadDemo('fs-exists')">Check Exists</li>
+                        <li onclick="loadDemo('fs-mkdir')">Create Directory</li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Dialogs</h3>
+                    <ul>
+                        <li onclick="loadDemo('dialog-open')">Open File</li>
+                        <li onclick="loadDemo('dialog-save')">Save File</li>
+                        <li onclick="loadDemo('dialog-message')">Message</li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Events</h3>
+                    <ul>
+                        <li onclick="loadDemo('counter')">Counter Demo</li>
+                        <li onclick="loadDemo('custom-event')">Custom Event</li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3>Utilities</h3>
+                    <ul>
+                        <li onclick="loadDemo('echo')">Echo</li>
+                        <li onclick="loadDemo('text-process')">Text Processor</li>
+                        <li onclick="loadDemo('api-list')">API List</li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="main-header">
+                <h2 id="demoTitle">Select an API</h2>
+                <p id="demoDescription">Choose an API from the sidebar to explore</p>
+            </header>
+
+            <div class="demo-container">
+                <!-- Request Section -->
+                <section class="request-section">
+                    <h3>Request</h3>
+                    <div id="requestForm" class="request-form">
+                        <p class="placeholder">Select an API to see parameters</p>
+                    </div>
+                    <button id="executeBtn" onclick="executeDemo()" class="execute-btn" disabled>
+                        ▶ Execute
+                    </button>
+                </section>
+
+                <!-- Response Section -->
+                <section class="response-section">
+                    <h3>Response</h3>
+                    <div id="responseOutput" class="response-output">
+                        <p class="placeholder">Response will appear here</p>
+                    </div>
+                    <div class="response-actions">
+                        <button onclick="copyResponse()" class="action-btn">📋 Copy</button>
+                        <button onclick="clearResponse()" class="action-btn">🗑️ Clear</button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Event Log -->
+            <section class="event-log-section">
+                <h3>Event Log</h3>
+                <div id="eventLog" class="event-log">
+                    <p class="log-entry system">Event log ready. Listening for events...</p>
+                </div>
+                <button onclick="clearEventLog()" class="clear-btn">Clear Log</button>
+            </section>
+        </main>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

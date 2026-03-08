@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge V2 Performance Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="logo">FORGE <span>V2</span></div>
+            <div class="subtitle">Rust-Backed Native Core</div>
+        </header>
+
+        <main>
+            <section class="card system-info">
+                <h3>System Status</h3>
+                <div id="sys-info-content">Loading...</div>
+            </section>
+
+            <section class="card performance-test">
+                <h3>Performance Test</h3>
+                <p>Calculate Fibonacci (n = 100,000)</p>
+                <div class="actions">
+                    <button id="run-test" class="btn">Execute Native Command</button>
+                    <div id="loader" class="hidden"></div>
+                </div>
+                <div id="result-box" class="hidden">
+                    <div class="stat">
+                        <span class="label">Time:</span>
+                        <span id="exec-time" class="value">0ms</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Result:</span>
+                        <code id="result-val">0</code>
+                    </div>
+                </div>
+            </section>
+
+            <section class="interactive-test">
+                <p>Try moving the window or clicking while the test runs—Forge V2 is non-blocking.</p>
+                <input type="text" placeholder="Type here to test UI responsiveness..." class="input">
+            </section>
+        </main>
+    </div>
+
+    <!-- Inject the Forge Native Bridge -->
+    <script src="forge.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

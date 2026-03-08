@@ -1,0 +1,34 @@
+[app]
+name = "Forge Notes"
+version = "1.0.0"
+description = "A simple note-taking app built with Forge"
+authors = ["Forge Team"]
+
+[window]
+title = "Forge Notes"
+width = 1200
+height = 800
+resizable = true
+fullscreen = false
+min_width = 600
+min_height = 400
+decorations = true
+always_on_top = false
+transparent = false
+
+[build]
+entry = "src/main.py"
+icon = "assets/icon.png"
+output_dir = "dist"
+single_binary = true
+
+[dev]
+frontend_dir = "src/frontend"
+hot_reload = true
+port = 5173
+
+[permissions]
+filesystem = true
+clipboard = true
+dialogs = true
+system_tray = false
