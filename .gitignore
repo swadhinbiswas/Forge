@@ -1,0 +1,88 @@
+# ==========================
+# OS files
+# ==========================
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# ==========================
+# Editor / IDE
+# ==========================
+.vscode/
+.idea/
+
+# ==========================
+# Environment variables
+# ==========================
+.env
+.env.*
+!.env.example
+
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test / coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Python tools
+pip-wheel-metadata/
+
+# ==========================
+# Rust
+# ==========================
+target/
+**/*.rs.bk
+
+# If library crate you may ignore Cargo.lock
+# If binary project you should commit Cargo.lock
+# Cargo.lock
+
+# ==========================
+# Logs
+# ==========================
+*.log
+logs/
+
+# ==========================
+# Temporary files
+# ==========================
+tmp/
+temp/
+*.tmp
+*.bak
+*.old
+
+# ==========================
+# Coverage / reports
+# ==========================
+coverage/
+*.lcov
+
+# ==========================
+# Misc
+# ==========================
+.cache/
