@@ -2,6 +2,10 @@
 
 Typed JavaScript bindings for the Forge runtime.
 
+## Requirements
+
+- Forge runtime embedded in a Python 3.14+ free-threaded app
+
 ## Install
 
 ```bash

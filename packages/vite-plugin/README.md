@@ -2,6 +2,11 @@
 
 Vite integration for Forge frontends.
 
+## Requirements
+
+- Forge runtime embedded in a Python 3.14+ free-threaded app
+- Vite 5+
+
 ## Install
 
 ```bash

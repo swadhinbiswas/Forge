@@ -18,6 +18,8 @@ class LifecycleAPI:
     Control application startup locks and OS lifecycle events.
     """
 
+    __forge_capability__ = "lifecycle"
+
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
         self._guard = None

@@ -10,13 +10,17 @@ import os
 VERIFYABLE_SUFFIXES = {".exe", ".msi", ".dll"}
 
 
+def _select_targets() -> list[Path]:
+    artifacts = [Path(path) for path in json.loads(os.environ.get("FORGE_BUILD_ARTIFACTS", "[]"))]
+    return [path for path in artifacts if path.exists() and path.suffix.lower() in VERIFYABLE_SUFFIXES]
+
+
 def main() -> None:
     signtool = shutil.which("signtool")
     if not signtool:
         raise FileNotFoundError("signtool is required for Windows verification")
 
-    artifacts = [Path(path) for path in json.loads(os.environ.get("FORGE_BUILD_ARTIFACTS", "[]"))]
-    targets = [path for path in artifacts if path.exists() and path.suffix.lower() in VERIFYABLE_SUFFIXES]
+    targets = _select_targets()
     if not targets:
         raise RuntimeError("No verifiable Windows artifacts were found")
 

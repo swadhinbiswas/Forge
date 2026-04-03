@@ -18,6 +18,8 @@ class PowerAPI:
     Manage power states, monitor battery, and suspend/resume events.
     """
 
+    __forge_capability__ = "power"
+
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
 

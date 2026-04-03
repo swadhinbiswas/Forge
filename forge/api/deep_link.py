@@ -11,6 +11,8 @@ from forge.bridge import command
 class DeepLinkAPI:
     """Framework-owned deep link state and dispatch surface."""
 
+    __forge_capability__ = "deep_link"
+
     def __init__(self, app: Any, schemes: list[str]) -> None:
         self._app = app
         self._schemes = list(schemes)
@@ -36,6 +38,9 @@ class DeepLinkAPI:
     @command("deep_link_open")
     def open(self, url: str) -> dict[str, Any]:
         """Validate and dispatch a deep link into the running application."""
+        if not self._app.has_capability("deep_link"):
+            raise PermissionError("The 'deep_link' capability is required.")
+
         parsed = urlparse(url)
         if not parsed.scheme:
             raise ValueError("Deep link URL must include a scheme")

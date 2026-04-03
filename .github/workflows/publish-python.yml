@@ -24,6 +24,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install maturin build twine
 
+      - name: Verify version alignment
+        run: python scripts/ci/verify_version_alignment.py --workspace-root . --json
+
       - name: Build wheel and sdist
         run: |
           python -m maturin build --release --out dist

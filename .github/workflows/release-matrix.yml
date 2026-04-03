@@ -2,7 +2,7 @@ name: release-matrix
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
   workflow_dispatch:
 
@@ -34,6 +34,10 @@ jobs:
           python-version: '3.14'
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Gate release branch
+        if: github.event_name != 'pull_request'
+        run: python scripts/ci/require_release_branch.py --json
 
       - name: Install Python build tooling
         run: |
@@ -76,8 +80,11 @@ jobs:
       - name: Build release fixture
         shell: bash
         run: |
-          python -m forge_cli.main build .ci/forge_todo --result-format json > build-result.json
+          python -m forge_cli.main release .ci/forge_todo --result-format json > build-result.json
           cat build-result.json
+
+      - name: Verify release artifacts
+        run: python scripts/ci/verify_release_artifacts.py --build-result build-result.json
 
       - name: Smoke-test installers
         run: python scripts/ci/smoke_installers.py --build-result build-result.json

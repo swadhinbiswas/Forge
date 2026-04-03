@@ -18,6 +18,8 @@ class OSIntegrationAPI:
     Manage OS-specific shell integrations like taskbar progress or attention requests.
     """
 
+    __forge_capability__ = "os_integration"
+
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
 

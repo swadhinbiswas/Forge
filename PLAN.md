@@ -521,6 +521,104 @@ Allow extension without degrading platform safety.
 
 ---
 
+## 7.9 Workstream I — npm Distribution and Frontend SDK
+
+### Objective
+Make Forge installable from the JavaScript ecosystem without weakening the Python-first runtime.
+
+### Deliverables
+- Official npm packages published from the monorepo:
+  - `@forge/api`
+  - `@forge/cli`
+  - `@forge/vite-plugin`
+  - `create-forge-app`
+- Versioned package contracts aligned with the Python runtime.
+- Generated TypeScript typings and runtime API docs.
+- Bootstrap flow that installs or discovers the Python backend cleanly.
+- Frontend integration packages that work in Vite-first and plain HTML workflows.
+
+### Required Tasks
+- Keep npm package versions synchronized with `forge-framework` releases.
+- Add prepublish checks for package metadata, exports, and type definitions.
+- Publish a stable `window.__forge__` contract for JS usage.
+- Add frontend starter templates that import Forge packages without extra wiring.
+- Ensure the Node wrappers fail clearly when the Python runtime is missing or incompatible.
+- Add CI checks for `npm pack`, install smoke tests, and wrapper bootstrapping.
+
+### Exit Criteria
+- A frontend developer can start with npm, install Forge packages, and reach a working app without manual Python setup confusion.
+- The npm packages are first-class artifacts, not thin afterthoughts.
+
+---
+
+## 7.10 Workstream J — Responsiveness and Performance
+
+### Objective
+Keep Forge applications visually responsive and interaction-fast under real workloads.
+
+### Deliverables
+- Non-blocking UI guidance and runtime contracts.
+- Async/background command execution rules.
+- Progress, cancellation, and task offloading patterns.
+- Startup and render performance budgets.
+- Performance dashboards and benchmark harnesses.
+
+### Required Tasks
+- Make long-running commands run off the main interaction path.
+- Add command-level progress reporting and cancellation support.
+- Provide debounced event patterns for high-frequency updates.
+- Ensure frontend rendering stays responsive during IPC bursts.
+- Define performance budgets for:
+  - startup time
+  - command latency
+  - window open time
+  - reload time
+  - memory footprint
+- Add benchmarks for large task lists, menu rebuilds, IPC throughput, and webview startup.
+- Add guidance for app authors on state partitioning, lazy loading, and background synchronization.
+
+### Engineering Rule
+If an API blocks the main UX path, it must either be async by default or provide a documented background execution model. A desktop framework that feels slow is not competitive, even if it is feature-rich.
+
+### Exit Criteria
+- Reference apps remain interactive while performing background work.
+- User-visible operations do not stall on file, network, or packaging work.
+- Performance regressions are caught in CI or benchmark gates.
+
+---
+
+## 7.11 Workstream K — Release Tooling and Supply Chain
+
+### Objective
+Make Forge releases repeatable, verifiable, and low-friction for both the core framework and the npm-facing packages.
+
+### Deliverables
+- End-to-end release matrix for PyPI and npm artifacts.
+- Signed release manifests with artifact digests.
+- Installer smoke tests for Windows, macOS, and Linux.
+- Package version synchronization across Python and npm artifacts.
+- Provenance and checksum validation for every distributed asset.
+- Release rollback and hotfix guidance.
+
+### Required Tasks
+- Automate version bumping across `pyproject.toml`, `package.json`, and generated docs.
+- Validate wheel, sdist, npm tarball, and installer outputs before publishing.
+- Run post-build smoke tests for sample apps and templates.
+- Confirm that release artifacts are reproducible from tagged source commits.
+- Ensure signing, notarization, and upload steps fail closed with clear diagnostics.
+- Add release candidate gates with manual approval steps only where necessary.
+- Capture release metadata for support and audit use.
+
+### Engineering Rule
+If an artifact cannot be validated before publication, it is not release-ready.
+
+### Exit Criteria
+- A release can be cut from a tagged commit with no manual drift in versioning or artifact naming.
+- Every public artifact has a corresponding validation and provenance record.
+- Release failures are diagnosable within one CI run.
+
+---
+
 ## 8. Milestone Plan
 
 ## Milestone 0 — Stabilization Foundation
@@ -579,7 +677,7 @@ Make Forge pleasant and predictable for daily development.
 ## Milestone 3 — Distribution and Operations
 
 ### Goal
-Make shipping feasible.
+Make shipping feasible, including npm-first frontend delivery.
 
 ### Scope
 - Installers.
@@ -587,6 +685,8 @@ Make shipping feasible.
 - Notarization.
 - Updater.
 - Support bundles.
+- npm package publishing and wrapper validation.
+- Reference apps that prove the JS and Python distribution story.
 
 ### Success Criteria
 - A sample app is installable and updatable on all target OSes.
@@ -596,13 +696,14 @@ Make shipping feasible.
 ## Milestone 4 — Ecosystem and 1.0 Release
 
 ### Goal
-Lock a stable platform and ship Forge 1.0 production release.
+Lock a stable platform and ship Forge 1.0 with a strong npm story and performance guarantees.
 
 ### Scope
 - Plugin system.
 - Long-term support policy.
 - Migration guides.
 - Performance certification.
+- First-class JS SDK and frontend starter experience.
 
 ### Success Criteria
 - API stability policy is published.
@@ -1250,3 +1351,37 @@ If execution capacity is constrained, work should be sequenced as follows:
 
 ### Non-Negotiable Rule
 No new marketing claims should be added before Sequence A is complete.
+
+---
+
+## 21. Path to Tauri-Parity (Production-Grade Roadmap)
+
+This section outlines the specific architectural phases required to close the remaining gap to a true production-grade framework with parity to Tauri.
+
+### Phase 1: Native Runtime Hardening & Multi-Window IPC
+*   **Context:** `src/lib.rs` has a rudimentary `windows_by_id` map, but lacks safe cross-window routing, lifecycle contracts, and child-process controls.
+*   **Multi-Window Management Architecture:** Deepen the Rust `HashMap<WindowId, RuntimeWindow>` so every window has a stable UUID. Expand the IPC bridge to carry `source_window` and `target_window` headers. Implement strict, deterministic event emissions for `created`, `ready`, `navigate_blocked`, `close_requested`, and `destroyed`. Allow spawning frameless, transparent, and draggable windows using native OS controls.
+*   **Native Core APIs:** Add a strict `shell` capability to spawn native processes via explicit allowlists. Integrate global system-wide hotkeys that map back to Python callbacks.
+
+### Phase 2: Deep Security & Granular ACLs
+*   **Context:** Capabilities currently use broad boolean flags (e.g., `fs = true`).
+*   **Granular Capability Model:** Transition `forge.toml` from boolean flags to scoped JSON-schema descriptors (e.g., `fs.allow = ["$APPDATA/my-app/**"]`).
+*   **Enforcement Boundary:** Python's `bridge.py` and the Rust IPC handler must parse and reject unauthorized payloads *before* they reach system APIs. Implement window-level scoping (where different windows have different limits).
+*   **IPC Payload Validation:** Immunize `bridge.py` using strict Pydantic/Rust Serde validation schemas to prevent injection or prototype pollution.
+*   **Content Security Policy (CSP):** The Rust asset server must securely inject strict `Content-Security-Policy` headers before sending HTML to the WebView.
+
+### Phase 3: Developer Experience (DX)
+*   **Context:** Frictionless dev loops are crucial. Recompiling or losing state slows velocity.
+*   **Hot Module Replacement (HMR) Stability:** Formalize Vite integration via `@forge/vite-plugin`. Maintain the IPC websocket connection even when Vite forces a frontend redraw.
+*   **Backend Reloads:** Safely reload Python state (e.g., via `os.execv` or `importlib.reload`) without continually killing and restarting the OS window when Python files are edited.
+*   **Observability & Debugging:** Create an IPC sniffer (`forge dev --inspect`) routing JSON traffic to the terminal or Chrome DevTools for real-time observability.
+
+### Phase 4: Build Tooling & Sidecars
+*   **Context:** Standardizing external binary execution and patching.
+*   **Sidecar Architecture:** Allow bundling pre-compiled external binaries in a secure `bin/` directory. Automatically sign and bundle these sidecars, executing them via a scoped wrapper (`app.shell.sidecar(...)`).
+*   **Delta Updates:** Upgrade the updater to use binary diffs (e.g., bsdiff/courgette) replacing full MSI/DMG downloads with small in-place patches.
+
+### Phase 5: Architectural Footprint (Python Optimization)
+*   **Context:** Tauri achieves ~15MB app sizes. Forge must defend its footprint.
+*   **Python Runtime Optimization:** Explore compiling the Python app using tools like `PyOxidizer`, `Nuitka`, or deeply stripped embeddable Python distributions. Strip unused standard libraries (`tkinter`, etc.) from the release bundle to heavily minimize installer sizes.
+

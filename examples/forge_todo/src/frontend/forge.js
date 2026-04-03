@@ -26,6 +26,7 @@
     var ws             = null;  // WebSocket instance (web mode only)
     var wsReady        = false;
     var wsQueue        = [];    // messages queued before WS is open
+    var managedWindows = new Map();
 
     // ─── Transport detection ───
     var hasNativeIPC = !!(window.ipc && typeof window.ipc.postMessage === "function");
@@ -228,6 +229,61 @@
         return Promise.resolve(result);
     }
 
+    function buildWindowFeatures(descriptor) {
+        var features = [];
+        if (descriptor.width) features.push("width=" + descriptor.width);
+        if (descriptor.height) features.push("height=" + descriptor.height);
+        features.push("resizable=" + (descriptor.resizable === false ? "no" : "yes"));
+        return features.join(",");
+    }
+
+    function openManagedWindow(descriptor) {
+        if (!descriptor || !descriptor.label) {
+            return null;
+        }
+        var popup = window.open(
+            descriptor.url,
+            descriptor.label,
+            buildWindowFeatures(descriptor)
+        );
+        managedWindows.set(descriptor.label, popup || null);
+        return popup;
+    }
+
+    function closeManagedWindow(label) {
+        if (!managedWindows.has(label)) {
+            return false;
+        }
+        var popup = managedWindows.get(label);
+        if (popup && !popup.closed) {
+            popup.close();
+        }
+        managedWindows.delete(label);
+        return true;
+    }
+
+    function currentWindowLabel() {
+        try {
+            if (window.name) {
+                return String(window.name).trim().toLowerCase() || "main";
+            }
+        } catch (err) {
+            console.warn("[Forge] Failed to inspect window name:", err);
+        }
+        return "main";
+    }
+
+    function currentOrigin() {
+        try {
+            if (window.location && window.location.href) {
+                return window.location.href;
+            }
+        } catch (err) {
+            console.warn("[Forge] Failed to inspect location href:", err);
+        }
+        return "forge://app/index.html";
+    }
+
     // ─── WebSocket initialization ───
 
     function connectWebSocket(url) {
@@ -304,7 +360,11 @@
                         id: id,
                         cmd: cmd,
                         args: args || {},
-                        trace: !!options.trace
+                        trace: !!options.trace,
+                        meta: {
+                            origin: currentOrigin(),
+                            window_label: currentWindowLabel()
+                        }
                     });
                     send(message);
                 } catch (err) {
@@ -506,6 +566,12 @@
             protocol: function () {
                 return window.__forge__.invoke("__forge_runtime_protocol", {});
             },
+            plugins: function () {
+                return window.__forge__.invoke("__forge_runtime_plugins", {});
+            },
+            security: function () {
+                return window.__forge__.invoke("__forge_runtime_security", {});
+            },
             lastCrash: function () {
                 return window.__forge__.invoke("__forge_runtime_last_crash", {});
             },
@@ -605,6 +671,22 @@
         },
 
         window: {
+            current: function () {
+                return window.__forge__.invoke("__forge_windows_current", {});
+            },
+            list: function () {
+                return window.__forge__.invoke("__forge_windows_list", {});
+            },
+            get: function (label) {
+                return window.__forge__.invoke("__forge_windows_get", { label: label });
+            },
+            create: function (options) {
+                options = options || {};
+                return window.__forge__.invoke("__forge_window_create", options);
+            },
+            closeLabel: function (label) {
+                return window.__forge__.invoke("__forge_window_close_label", { label: label });
+            },
             setTitle: function (title) {
                 return window.__forge__.invoke("__forge_window_set_title", { title: title });
             },
@@ -757,6 +839,16 @@
          * Internal: handle messages from Python (called by Rust evaluate_script).
          */
         _handleMessage: handleMessage,
+
+        /**
+         * Internal: open a managed secondary window.
+         */
+        __openManagedWindow: openManagedWindow,
+
+        /**
+         * Internal: close a managed secondary window.
+         */
+        __closeManagedWindow: closeManagedWindow,
 
         /**
          * Internal: active IPC protocol version.

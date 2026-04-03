@@ -17,6 +17,7 @@ from .power import PowerAPI
 from .keychain import KeychainAPI
 from .window_state import WindowStateAPI
 from .drag_drop import DragDropAPI
+from .shell import ShellAPI
 
 __all__ = [
     "ClipboardAPI",
@@ -38,4 +39,5 @@ __all__ = [
     "KeychainAPI",
     "WindowStateAPI",
     "DragDropAPI",
+    "ShellAPI",
 ]

@@ -50,11 +50,38 @@ Focusing on making the framework feel like a native, robust, and highly *Pythoni
     - **Features:** Auto-save/restore window positions and sizes to prevent "window teleporting" using a pure Python persistent state manager.
 12. ~~Native Drag & Drop API (`forge/api/drag_drop.py`)**
     - **Features:** Intercept heavy files natively and emit clean Python events (`@app.events.on("drag_drop")`) with native absolute paths.
-13. **Printing and PDF Generation**
+13. ~~Printing and PDF Generation~~
     - **Features:** Expose silent printing and PDF generation to the Python backend with zero overhead.
 14. **Unified Build Tooling (`forge_cli/build.py`)**
     - **Features:** A seamless `forge build` command handling Vite, Python bundling, and native installer generation orchestrations in one Python-centric step.
 
 ---
 ## 🚀 Execution: Progressing to Phase 4
-Phase 1, 2, and 3 are complete. Starting Phase 4 (UI Vibrancy, Persistency & Native Feel).
+Starting Phase 4 (UI Vibrancy, Persistency & Native Feel).
+
+## 🧱 Production Hardening Backlog
+These items are now the focus for making the framework feel production-grade:
+
+1. **Capability audit and enforcement pass**
+   - Ensure every native API that reaches the bridge has a clear capability boundary.
+   - Align `forge.toml` permissions with runtime checks and add tests for deny-by-default paths.
+
+2. **Runtime wiring cleanup**
+   - Remove duplicate imports and duplicate initialization blocks in `forge/app.py`.
+   - Keep the app bootstrap path deterministic and easy to reason about.
+
+3. **Event emitter compatibility**
+   - Support both decorator-style and callback-style listeners so APIs stay ergonomic.
+   - Keep the emitter thread-safe and test-covered.
+
+4. **Filesystem scope hardening**
+   - Support explicit allowed directories.
+   - Reject absolute path access outside the configured scope.
+
+5. **CLI and example parity**
+   - Keep templates, docs, and examples aligned with the runtime API surface.
+   - Add regression coverage for scaffolded apps and example projects.
+
+6. **Build and release tooling**
+   - Finish the unified build pipeline.
+   - Ensure packaging, signing, and release-manifest generation remain reproducible.

@@ -19,6 +19,8 @@ class AutostartAPI:
     Manage OS-specific login autostart registration.
     """
 
+    __forge_capability__ = "autostart"
+
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
         # Default name derived from app config

@@ -23,9 +23,9 @@ use wry::WebViewBuilderExtUnix;
 // ─── User Events for cross-thread communication ───
 enum UserEvent {
     /// Evaluate JavaScript in the WebView
-    Eval(String),
+    Eval(String, String),
     /// Navigate to a URL in the WebView
-    LoadUrl(String),
+    LoadUrl(String, String),
     /// Reload the current page
     Reload,
     /// Navigate backward in history
@@ -350,11 +350,18 @@ fn build_webview_for_window(
 
             if let Ok(content) = fs::read(&file_path) {
                 let mime = mime_from_path(&path);
-                let response = wry::http::Response::builder()
-                    .header("Content-Type", mime)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .body(Cow::Owned(content))
-                    .unwrap();
+                let mut builder = wry::http::Response::builder()
+                    .header("Content-Type", mime.clone())
+                    .header("Access-Control-Allow-Origin", "*");
+
+                if mime == "text/html" {
+                    builder = builder.header(
+                        "Content-Security-Policy",
+                        "default-src 'self' forge: http://localhost:*;                          script-src 'self' 'unsafe-inline' 'unsafe-eval' forge: http://localhost:*;                          style-src 'self' 'unsafe-inline' forge: http://localhost:*;                          img-src 'self' data: forge: http://localhost:*;                          connect-src 'self' ws://localhost:* http://localhost:* forge:;"
+                    );
+                }
+
+                let response = builder.body(Cow::Owned(content)).unwrap();
                 responder.respond(response);
             } else {
                 let response = wry::http::Response::builder()
@@ -426,15 +433,15 @@ struct WindowProxy {
 #[pymethods]
 impl WindowProxy {
     /// Send JavaScript to the WebView for evaluation (thread-safe, non-blocking).
-    fn evaluate_script(&self, script: String) -> PyResult<()> {
-        self.proxy.send_event(UserEvent::Eval(script)).map_err(|_| {
+    fn evaluate_script(&self, label: String, script: String) -> PyResult<()> {
+        self.proxy.send_event(UserEvent::Eval(label, script)).map_err(|_| {
             PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Failed to send script to event loop")
         })
     }
 
     /// Navigate the live webview to a URL.
-    fn load_url(&self, url: String) -> PyResult<()> {
-        self.proxy.send_event(UserEvent::LoadUrl(url)).map_err(|_| {
+    fn load_url(&self, label: String, url: String) -> PyResult<()> {
+        self.proxy.send_event(UserEvent::LoadUrl(label, url)).map_err(|_| {
             PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Failed to send navigation event")
         })
     }
@@ -1141,16 +1148,16 @@ impl NativeWindow {
             }
 
             match event {
-                Event::UserEvent(UserEvent::Eval(script)) => {
-                    if let Some(main_id) = labels_to_id.get("main") {
-                        if let Some(runtime_window) = windows_by_id.get(main_id) {
+                Event::UserEvent(UserEvent::Eval(label, script)) => {
+                    if let Some(target_id) = labels_to_id.get(&label) {
+                        if let Some(runtime_window) = windows_by_id.get(target_id) {
                             let _ = runtime_window.webview.evaluate_script(&script);
                         }
                     }
                 }
-                Event::UserEvent(UserEvent::LoadUrl(url)) => {
-                    if let Some(main_id) = labels_to_id.get("main") {
-                        if let Some(runtime_window) = windows_by_id.get_mut(main_id) {
+                Event::UserEvent(UserEvent::LoadUrl(label, url)) => {
+                    if let Some(target_id) = labels_to_id.get(&label) {
+                        if let Some(runtime_window) = windows_by_id.get_mut(target_id) {
                             runtime_window.url = url.clone();
                             let _ = runtime_window.webview.load_url(&url);
                         }
@@ -1364,6 +1371,7 @@ impl NativeWindow {
                                     "fullscreen": descriptor.fullscreen,
                                     "resizable": descriptor.resizable,
                                     "decorations": descriptor.decorations,
+                                    "transparent": descriptor.transparent,
                                     "always_on_top": descriptor.always_on_top,
                                     "visible": descriptor.visible,
                                     "focused": descriptor.focus,

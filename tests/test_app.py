@@ -53,11 +53,11 @@ class TestForgeApp:
         def __init__(self) -> None:
             self.calls: list[tuple[str, tuple[object, ...]]] = []
 
-        def evaluate_script(self, script: str) -> None:
-            self.calls.append(("evaluate_script", (script,)))
+        def evaluate_script(self, label: str, script: str) -> None:
+            self.calls.append(("evaluate_script", (label, script)))
 
-        def load_url(self, url: str) -> None:
-            self.calls.append(("load_url", (url,)))
+        def load_url(self, label: str, url: str) -> None:
+            self.calls.append(("load_url", (label, url)))
 
         def reload(self) -> None:
             self.calls.append(("reload", ()))
@@ -776,7 +776,7 @@ class TestForgeApp:
             "devtools_open": False,
         }
         assert [call for call in proxy.calls if call[0] != "evaluate_script"][:6] == [
-            ("load_url", ("https://example.com",)),
+            ("load_url", ("main", "https://example.com")),
             ("reload", ()),
             ("go_back", ()),
             ("go_forward", ()),
@@ -792,7 +792,7 @@ class TestForgeApp:
 
         app._on_window_ready(proxy)
 
-        assert ("load_url", ("http://127.0.0.1:4173",)) in proxy.calls
+        assert ("load_url", ("main", "http://127.0.0.1:4173")) in proxy.calls
         assert app.runtime.state()["url"] == "http://127.0.0.1:4173"
 
     def test_runtime_control_ipc_commands_and_support_bundle_export(self, tmp_path: Path) -> None:
@@ -1232,11 +1232,11 @@ class TestForgeApp:
             ("focused", {"focused": True}),
         ]
         assert any(
-            call[0] == "evaluate_script" and "window:resized" in call[1][0]
+            call[0] == "evaluate_script" and "window:resized" in call[1][1]
             for call in proxy.calls
         )
         assert any(
-            call[0] == "evaluate_script" and "window:focused" in call[1][0]
+            call[0] == "evaluate_script" and "window:focused" in call[1][1]
             for call in proxy.calls
         )
 

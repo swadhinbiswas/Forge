@@ -23,13 +23,14 @@ logger = logging.getLogger(__name__)
 class DialogAPI:
     """
 
-    __forge_capability__ = "dialogs"
     Dialog API for Forge applications.
 
     In v2.0, dialog operations are handled by the JavaScript frontend
     using browser-native APIs. The Python side provides command stubs
     that can be overridden for custom behavior.
     """
+
+    __forge_capability__ = "dialogs"
 
     def open_file(
         self,

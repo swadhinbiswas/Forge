@@ -15,6 +15,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Gate release branch
+        run: python scripts/ci/require_release_branch.py --json
+
       - name: Install tooling
         run: |
           python -m pip install --upgrade pip
@@ -55,6 +58,9 @@ jobs:
 
       - name: Smoke-test signed installers
         run: python scripts/ci/smoke_installers.py --build-result release-linux.json
+
+      - name: Verify release artifacts
+        run: python scripts/ci/verify_release_artifacts.py --build-result release-linux.json
 
       - uses: actions/upload-artifact@v4
         with:
@@ -114,6 +120,9 @@ jobs:
 
       - name: Smoke-test signed installers
         run: python scripts/ci/smoke_installers.py --build-result release-windows.json
+
+      - name: Verify release artifacts
+        run: python scripts/ci/verify_release_artifacts.py --build-result release-windows.json
 
       - uses: actions/upload-artifact@v4
         with:
@@ -192,6 +201,9 @@ PY
 
       - name: Smoke-test notarized installers
         run: python scripts/ci/smoke_installers.py --build-result release-macos.json
+
+      - name: Verify release artifacts
+        run: python scripts/ci/verify_release_artifacts.py --build-result release-macos.json
 
       - uses: actions/upload-artifact@v4
         with:

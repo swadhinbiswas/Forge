@@ -345,18 +345,21 @@ class TestIPCBridgeWithApp:
                 "capability": None,
                 "version": PROTOCOL_VERSION,
                 "internal": True,
+                "allowed": True,
             },
             {
                 "name": "__forge_protocol_info",
                 "capability": None,
                 "version": PROTOCOL_VERSION,
                 "internal": True,
+                "allowed": True,
             },
             {
                 "name": "clipboard_secret",
                 "capability": "clipboard",
                 "version": "1.2",
                 "internal": False,
+                "allowed": True,
             }
         ]
 

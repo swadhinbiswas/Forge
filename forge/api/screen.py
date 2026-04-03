@@ -18,6 +18,8 @@ class ScreenAPI:
     Query system displays, resolutions, and work areas.
     """
 
+    __forge_capability__ = "screen"
+
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
 

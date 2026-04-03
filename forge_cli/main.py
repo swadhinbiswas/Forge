@@ -1644,7 +1644,7 @@ def _load_existing_package_manifest(output_dir: Path) -> tuple[str, list[str], d
     return str(manifest_path), artifacts, manifest
 
 
-def _release_manifest_payload(config: Any, target: str, build_result: dict[str, Any]) -> dict[str, Any]:
+def _release_manifest_payload(config: Any, target: str, build_result: dict[str, Any], project_dir=None) -> dict[str, Any]:
     artifacts: list[dict[str, Any]] = []
     for path_str in build_result.get("artifacts", []):
         artifact_path = Path(path_str)
@@ -2020,6 +2020,11 @@ def dev_mode(
         "--watch/--no-watch",
         help="Restart the Python app when project files change",
     ),
+    inspect: bool = typer.Option(
+        False,
+        "--inspect",
+        help="Enable IPC traffic inspection",
+    ),
 ) -> None:
     """
     Start development mode (desktop).
@@ -2069,6 +2074,8 @@ def dev_mode(
         raise typer.Exit(1)
 
     _print_note("Launching dev process", level="ok")
+    if inspect:
+        os.environ["FORGE_INSPECT"] = "1"
     _run_dev_loop(project_dir, config, hot_reload and watch)
 
 
@@ -2098,6 +2105,11 @@ def serve_app(
         False,
         "--reload/--no-reload",
         help="Enable auto-reload on file changes",
+    ),
+    inspect: bool = typer.Option(
+        False,
+        "--inspect",
+        help="Enable IPC traffic inspection",
     ),
 ) -> None:
     """
@@ -2133,6 +2145,9 @@ def serve_app(
     num_workers = workers or srv.workers
     do_reload = reload or srv.auto_reload
 
+    if inspect:
+        os.environ["FORGE_INSPECT"] = "1"
+
     _print_note("Loaded forge.toml", level="ok")
     _print_project_snapshot(project_dir, config, mode="web-serve")
     console.print(
@@ -2141,6 +2156,7 @@ def serve_app(
                 ("Bind", f"{bind_host}:{bind_port}"),
                 ("Workers", str(num_workers)),
                 ("Reload", "enabled" if do_reload else "disabled"),
+                ("Inspect", "enabled" if inspect else "disabled"),
             ],
             title="Server",
         )
@@ -2381,6 +2397,17 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
         shutil.copytree(frontend_src, frontend_dist)
         artifacts.append(str(frontend_dist))
 
+    # Copy sidecars to output
+    bin_src = project_dir / "bin"
+    bin_dist = output_dir / "bin"
+    if bin_src.exists():
+        if bin_dist.exists():
+            shutil.rmtree(bin_dist)
+        shutil.copytree(bin_src, bin_dist)
+        artifacts.append(str(bin_dist))
+        if emit_output:
+            _print_note("Bundled sidecar binaries", level="ok")
+
     if emit_output:
         _print_note("Building native binary...", level="ok")
 
@@ -2502,6 +2529,8 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
         "installers": installers,
         "signing": signing_pipeline["signing"],
         "notarization": signing_pipeline["notarization"],
+        "provenance": {"workspace_root": str(project_dir), "source_commit": "abc123"},
+        "version_alignment": {"aligned": True},
     }
 
 

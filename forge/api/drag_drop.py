@@ -5,6 +5,8 @@ class DragDropAPI:
     API for drag & drop operations.
     Listens to window events and dispatches clean path lists.
     """
+
+    __forge_capability__ = "drag_drop"
     
     def __init__(self, app):
         self.app = app

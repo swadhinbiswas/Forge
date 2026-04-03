@@ -150,16 +150,33 @@ class FileSystemPermissions:
     write: list[str] = field(default_factory=list)
 
 @dataclass
+class ShellPermissions:
+    """Strict Shell execution scopes."""
+    execute: list[str] = field(default_factory=list)
+    sidecars: list[str] = field(default_factory=list)
+
+@dataclass
 class PermissionsConfig:
     """API permissions configuration."""
 
     filesystem: bool | FileSystemPermissions = True
+    shell: bool | ShellPermissions = False
     clipboard: bool = True
     dialogs: bool = True
     notifications: bool = True
     system_tray: bool = False
+    global_shortcut: bool = False
     updater: bool = False
     keychain: bool = False
+    screen: bool = True
+    lifecycle: bool = True
+    deep_link: bool = True
+    os_integration: bool = True
+    autostart: bool = True
+    power: bool = True
+    printing: bool = True
+    window_state: bool = True
+    drag_drop: bool = True
 
 
 @dataclass
@@ -363,14 +380,34 @@ class ForgeConfig:
             else:
                 fs_perm = bool(fs_val)
 
+            shell_val = perm_data.get("shell", False)
+            if isinstance(shell_val, dict):
+                shell_perm = ShellPermissions(
+                    execute=list(shell_val.get("execute", [])),
+                    sidecars=list(shell_val.get("sidecars", [])),
+                )
+            else:
+                shell_perm = bool(shell_val)
+
             config.permissions = PermissionsConfig(
                 filesystem=fs_perm,
+                shell=shell_perm,
                 clipboard=perm_data.get("clipboard", True),
                 dialogs=perm_data.get("dialogs", True),
                 notifications=perm_data.get("notifications", True),
                 system_tray=perm_data.get("system_tray", False),
+                global_shortcut=perm_data.get("global_shortcut", False),
                 updater=perm_data.get("updater", False),
                 keychain=perm_data.get("keychain", False),
+                screen=perm_data.get("screen", True),
+                lifecycle=perm_data.get("lifecycle", True),
+                deep_link=perm_data.get("deep_link", True),
+                os_integration=perm_data.get("os_integration", True),
+                autostart=perm_data.get("autostart", True),
+                power=perm_data.get("power", True),
+                printing=perm_data.get("printing", True),
+                window_state=perm_data.get("window_state", True),
+                drag_drop=perm_data.get("drag_drop", True),
             )
 
         if "security" in data:
@@ -658,10 +695,12 @@ def _validate_config(config: ForgeConfig) -> None:
 
     allowed_scope_values = {
         "filesystem",
+        "shell",
         "clipboard",
         "dialogs",
         "notifications",
         "system_tray",
+        "global_shortcut",
         "updater",
         "system",
         "all",

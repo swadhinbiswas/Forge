@@ -55,7 +55,13 @@ cd ../create-forge-app && npm pack
 
 - Run `cargo check`
 - Run `pytest -q tests/test_cli.py tests/test_app.py tests/test_config.py`
+- Run `pytest -q tests/test_release_artifacts.py tests/test_release_branch_gate.py tests/test_signing_helpers.py tests/test_smoke_installers.py tests/test_version_alignment.py`
 - Run package/release validation workflows
+- Confirm release branch policy is satisfied for protected CI paths
+- Confirm installer smoke tests pass for the target platform matrix
+- Confirm `forge doctor --output json` succeeds in the release workspace
+- Confirm `python scripts/ci/verify_version_alignment.py --workspace-root . --json` succeeds
+- Confirm `python scripts/ci/verify_release_artifacts.py --build-result build-result.json` succeeds on a representative release payload
 - Confirm version numbers match across:
   - [pyproject.toml](pyproject.toml)
   - [forge_cli/__init__.py](forge_cli/__init__.py)
@@ -69,6 +75,10 @@ cd ../create-forge-app && npm pack
 - Python package build metadata exists in [pyproject.toml](pyproject.toml)
 - npm package manifests exist under [packages](packages)
 - automated publish workflows now exist
+- release manifest verification and branch gating helpers now exist
+- installer smoke-test helpers now exist
+- signing helper selectors now exist for Windows and macOS validation paths
+- reusable version-alignment helper now exists for publish workflows
 
 ### Still required before first public publish
 - replace placeholder project email/URLs if needed

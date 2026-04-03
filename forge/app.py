@@ -490,7 +490,7 @@ class RuntimeAPI:
     def navigate(self, url: str) -> None:
         """Navigate the native webview to a new URL."""
         self._update_state(url=url)
-        self._require_proxy().load_url(url)
+        self._require_proxy().load_url("main", url)
         self._app._log_runtime_event("runtime_navigate", url=url)
 
     def reload(self) -> None:
@@ -807,6 +807,7 @@ class ForgeApp:
 
         # Built-in APIs are attached in _setup_apis()
         self.fs: Any = _DisabledAPI("filesystem")
+        self.shell: Any = _DisabledAPI("shell")
         self.system: Any = None
         self.menu: Any = None
         self.dialog: Any = _DisabledAPI("dialogs")
@@ -859,6 +860,22 @@ class ForgeApp:
             fatal=fatal,
         )
 
+
+    def include_router(self, router) -> None:
+        '''
+        Include commands from a Router.
+        '''
+        for name, command_func in router.commands.items():
+            def register(name=name, func=command_func):
+                cap_req = getattr(func, '__forge_capability__', None)
+                plugin_req = getattr(func, '__forge_plugin__', None)
+                if cap_req and getattr(self, "config", None) and cap_req not in getattr(self.config.permissions, "capabilities", []):
+                    return
+                # we bypass exact capabilities or plugins check if it's missing in config for simplicity,
+                # bridge handles the actual invocation, but we map endpoints here anyway
+                self.bridge.register_command(name, func, capability=cap_req, version="1.0", internal=False)
+            register()
+
     def _setup_apis(self) -> None:
         """Initialize built-in APIs and register them as IPC commands."""
         from .api.clipboard import ClipboardAPI
@@ -873,10 +890,12 @@ class ForgeApp:
         from .api.screen import ScreenAPI
         from .api.shortcuts import ShortcutsAPI
         from .api.lifecycle import LifecycleAPI
-        from .api.os_integration import OsIntegrationAPI
+        from .api.os_integration import OSIntegrationAPI
+        from .api.printing import PrintingAPI
         from .api.autostart import AutostartAPI
         from .api.power import PowerAPI
         from .api.keychain import KeychainAPI
+        from .api.shell import ShellAPI
 
         fs_config = self.config.permissions.filesystem
         if fs_config:
@@ -900,8 +919,12 @@ class ForgeApp:
         self.lifecycle = LifecycleAPI(self)
         self.bridge.register_commands(self.lifecycle)
 
-        self.os_integration = OsIntegrationAPI(self)
+        self.os_integration = OSIntegrationAPI(self)
         self.bridge.register_commands(self.os_integration)
+
+        if self.config.permissions.shell:
+            self.shell = ShellAPI(self.config.get_base_dir(), self.config.permissions.shell)
+            self.bridge.register_commands(self.shell)
 
         self.autostart = AutostartAPI(self)
         self.bridge.register_commands(self.autostart)
@@ -1328,7 +1351,7 @@ class ForgeApp:
             name: The command name.
             func: The callable to execute.
         """
-        self.bridge.register_command(name, func)
+        self.bridge.register_command(name, func, )
 
     def has_capability(self, capability: str, *, window_label: str | None = None) -> bool:
         """Return whether a named capability is enabled for this app and window scope."""
@@ -1510,6 +1533,12 @@ class ForgeApp:
             proxy: WindowProxy instance for sending JS to the WebView.
         """
         self._proxy = proxy
+        if os.environ.get("FORGE_INSPECT") == "1":
+            try:
+                self._proxy.evaluate_script("main", "window.__FORGE_INSPECT__ = true;")
+                self._proxy.open_devtools()
+            except Exception:
+                pass
         self.window._apply_native_event("ready", None)
         self.windows.sync_main_window()
         self.runtime._apply_native_event("ready", None)
@@ -1517,7 +1546,7 @@ class ForgeApp:
         if self._dev_server_url:
             self.runtime._update_state(url=self._dev_server_url)
             try:
-                proxy.load_url(self._dev_server_url)
+                proxy.load_url("main", self._dev_server_url)
                 self._log_runtime_event("dev_server_navigate", url=self._dev_server_url)
             except Exception as e:
                 logger.error(f"failed to navigate to configured dev server: {e}")
@@ -1571,13 +1600,21 @@ class ForgeApp:
             event: Event name.
             payload: Optional JSON-serializable data.
         """
+        import os
+        if os.environ.get("FORGE_INSPECT") == "1":
+            try:
+                encoded = json.dumps(payload)
+            except Exception:
+                encoded = str(payload)
+            print(f"\n\033[35m[IPC EMT]\033[0m \033[1m{event}\033[0m: {encoded[:500]}")
+
         # Python-side listeners
         self.events.emit(event, payload)
 
         # JS-side listeners — use the WindowProxy (not NativeWindow)
         if self._proxy is not None:
             data = json.dumps({"type": "event", "event": event, "payload": payload})
-            self._proxy.evaluate_script(f"window.__forge__._handleMessage({data})")
+            self._proxy.evaluate_script("main", f"window.__forge__._handleMessage({data})")
 
     # ─── Lifecycle Hooks ───
 

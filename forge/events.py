@@ -44,27 +44,54 @@ class EventEmitter:
         self._async_listeners: Dict[str, List[Callable[[Any], Any]]] = defaultdict(list)
         self._lock = threading.Lock()
 
-    def on(self, event: str, callback: EventCallback) -> None:
+    def on(
+        self,
+        event: str,
+        callback: EventCallback | None = None,
+    ) -> EventCallback | Callable[[EventCallback], EventCallback]:
         """
         Register a synchronous listener for an event.
 
         Args:
             event: The event name to listen for.
-            callback: Function to call when the event is emitted.
+            callback: Function to call when the event is emitted. If omitted,
+                returns a decorator so the method can be used as @on("event").
         """
+        if callback is None:
+            def decorator(func: EventCallback) -> EventCallback:
+                self.on(event, func)
+                return func
+
+            return decorator
+
         with self._lock:
             self._listeners[event].append(callback)
+        return callback
 
-    def on_async(self, event: str, callback: Callable[[Any], Any]) -> None:
+    def on_async(
+        self,
+        event: str,
+        callback: Callable[[Any], Any] | None = None,
+    ) -> Callable[[Any], Any] | Callable[[Callable[[Any], Any]], Callable[[Any], Any]]:
         """
         Register an asynchronous listener for an event.
 
         Args:
             event: The event name to listen for.
-            callback: Async function to call when the event is emitted.
+            callback: Async function to call when the event is emitted. If
+                omitted, returns a decorator so the method can be used as
+                @on_async("event").
         """
+        if callback is None:
+            def decorator(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
+                self.on_async(event, func)
+                return func
+
+            return decorator
+
         with self._lock:
             self._async_listeners[event].append(callback)
+        return callback
 
     def off(self, event: str, callback: EventCallback) -> None:
         """

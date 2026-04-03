@@ -16,6 +16,10 @@ def _targets() -> list[Path]:
     return [path for path in candidates if path.exists() and (path.is_dir() or path.suffix.lower() in SIGNABLE_SUFFIXES)]
 
 
+def _select_targets() -> list[Path]:
+    return _targets()
+
+
 def main() -> None:
     identity = os.environ["FORGE_MACOS_SIGN_IDENTITY"]
     codesign = shutil.which("codesign")
@@ -25,7 +29,7 @@ def main() -> None:
     timestamp_url = os.environ.get("FORGE_MACOS_TIMESTAMP_URL")
     timestamp_args = [f"--timestamp={timestamp_url}"] if timestamp_url else ["--timestamp"]
 
-    targets = _targets()
+    targets = _select_targets()
     if not targets:
         raise RuntimeError("No signable macOS artifacts were found")
 

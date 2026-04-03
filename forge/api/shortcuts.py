@@ -18,6 +18,8 @@ class ShortcutsAPI:
     Manage system-wide global hotkeys.
     """
 
+    __forge_capability__ = "global_shortcut"
+
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
         self._callbacks: Dict[str, Callable[[], None]] = {}

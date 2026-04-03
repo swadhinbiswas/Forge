@@ -4,8 +4,8 @@
 
 Build lightweight, cross-platform desktop applications using Python as the backend and any web technology (HTML/CSS/JS, React, Vue, Svelte) as the frontend — connected via a seamless IPC bridge.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Python](https://img.shields.io/badge/python-3.11+-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Python](https://img.shields.io/badge/python-3.14%2B%20(NoGIL)-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
 
@@ -106,10 +106,14 @@ Forge can now be prepared for publication to both registries:
 - PyPI package: `forge-framework`
 - npm packages: `@forge/api`, `@forge/cli`, `@forge/vite-plugin`, and `create-forge-app`
 
+Release quality is enforced in CI with version-alignment checks, release-branch gating, release-manifest verification, and installer smoke tests before publishing.
+
 Release automation is defined in:
 
 - [.github/workflows/publish-python.yml](.github/workflows/publish-python.yml)
 - [.github/workflows/publish-npm.yml](.github/workflows/publish-npm.yml)
+- [.github/workflows/release-matrix.yml](.github/workflows/release-matrix.yml)
+- [.github/workflows/signing-validation.yml](.github/workflows/signing-validation.yml)
 - [RELEASE.md](RELEASE.md)
 
 ### Development
@@ -129,6 +133,13 @@ Notes:
 
 ```bash
 forge build
+```
+
+### Environment Validation
+
+```bash
+forge doctor
+forge doctor --output json
 ```
 
 Package metadata and installer descriptors without a release manifest:
@@ -154,6 +165,8 @@ To generate a release manifest with artifact digests for pipelines:
 ```bash
 forge release --result-format json
 ```
+
+Use `forge doctor --output json` before publishing to validate environment readiness, version alignment, and project health.
 
 ## 📖 Documentation
 

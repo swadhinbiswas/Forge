@@ -10,10 +10,11 @@ Forge the future. Ship with Python.
 
 from __future__ import annotations
 
-from forge.app import ForgeApp, command
+from forge.app import ForgeApp
 from forge.bridge import IPCBridge
 from forge.config import ForgeConfig, ServerConfig, DatabaseConfig, RoutesConfig
 from forge.events import EventEmitter
+from forge.router import Router
 
 __version__ = "2.0.0"
 __all__ = [
@@ -24,5 +25,5 @@ __all__ = [
     "RoutesConfig",
     "IPCBridge",
     "EventEmitter",
-    "command",
+    "Router",
 ]

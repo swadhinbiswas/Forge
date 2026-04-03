@@ -35,19 +35,25 @@ def _expand_path_var(p: str) -> Path:
 
 class FileSystemAPI:
     """
-    __forge_capability__ = "filesystem"
     File system API for Forge applications with Strict Scopes.
     """
+
+    __forge_capability__ = "filesystem"
 
     def __init__(
         self,
         base_path: Path | None = None,
         permissions: Union[bool, FileSystemPermissions] = True,
+        allowed_dirs: list[Path] | None = None,
     ) -> None:
         self._base_path = base_path.resolve() if base_path else Path.cwd().resolve()
         
         self._read_dirs: List[Path] = []
         self._write_dirs: List[Path] = []
+
+        for directory in allowed_dirs or []:
+            self._read_dirs.append(Path(directory).resolve())
+            self._write_dirs.append(Path(directory).resolve())
         
         if isinstance(permissions, bool) and permissions:
             self._read_dirs.append(self._base_path)
@@ -83,13 +89,13 @@ class FileSystemAPI:
             input_path = Path(path)
         
         if input_path.is_absolute():
-            if not allow_absolute:
-                input_path = Path(path.lstrip("/\\"))
-                resolved = (self._base_path / input_path).resolve()
-            else:
-                resolved = input_path.resolve()
+            resolved = input_path.resolve()
         else:
             resolved = (self._base_path / input_path).resolve()
+
+        if allow_absolute and resolved == input_path.resolve():
+            # Explicit absolute access still must satisfy the allowed directory policy.
+            pass
 
         if not self._is_path_allowed(resolved, mode=mode):
             raise ValueError(

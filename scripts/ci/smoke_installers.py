@@ -43,6 +43,34 @@ def _load_payload(path: Path) -> dict[str, Any]:
     raise ValueError(f"Unsupported build payload: {path}")
 
 
+def _installers_for_platform(installers: list[dict[str, Any]], platform_name: str) -> list[dict[str, Any]]:
+    if platform_name.startswith("linux"):
+        supported = {"appimage", "flatpak"}
+    elif platform_name == "darwin":
+        supported = {"dmg"}
+    elif platform_name == "win32":
+        supported = {"msi", "nsis"}
+    else:
+        raise RuntimeError(f"Unsupported smoke-test platform: {platform_name}")
+
+    selected: list[dict[str, Any]] = []
+    for installer in installers:
+        if not isinstance(installer, dict):
+            continue
+        fmt = installer.get("format")
+        path = installer.get("path")
+        if fmt not in supported or not isinstance(path, str) or not path:
+            continue
+        artifact_path = Path(path)
+        if not artifact_path.exists() or not artifact_path.is_file():
+            raise FileNotFoundError(f"Installer artifact missing: {artifact_path}")
+        selected.append(installer)
+
+    if not selected:
+        raise ValueError(f"No supported installers found for platform {platform_name}")
+    return selected
+
+
 def _linux_smoke(installers: list[dict[str, Any]]) -> None:
     xvfb = shutil.which("xvfb-run")
     for installer in installers:
@@ -107,9 +135,7 @@ def main() -> None:
     args = parser.parse_args()
 
     payload = _load_payload(Path(args.build_result))
-    installers = list(payload["build"].get("installers", []))
-    if not installers:
-        raise ValueError("No installers found in build payload")
+    installers = _installers_for_platform(list(payload["build"].get("installers", [])), sys.platform)
 
     current = sys.platform
     if current.startswith("linux"):

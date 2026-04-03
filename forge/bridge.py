@@ -320,6 +320,23 @@ class IPCBridge:
     # ─── Command Invocation ───
 
     def invoke_command(self, raw_message: str) -> str:
+        inspect = os.environ.get("FORGE_INSPECT") == "1"
+        if inspect:
+            try:
+                msg_data = json.loads(raw_message)
+                cmd = msg_data.get('command') or msg_data.get('cmd') or 'unknown'
+                print(f"\n\033[36m[IPC REQ]\033[0m \033[1m{cmd}\033[0m: {raw_message[:500]}")
+            except Exception:
+                print(f"\n\033[36m[IPC REQ]\033[0m \033[1munknown\033[0m: {raw_message[:500]}")
+                
+        result = self._invoke_command_internal(raw_message)
+        
+        if inspect:
+            print(f"\033[32m[IPC RES]\033[0m {result[:500]}")
+            
+        return result
+
+    def _invoke_command_internal(self, raw_message: str) -> str:
         """
         Parse, validate, and execute an IPC command from a raw JSON string.
 
