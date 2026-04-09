@@ -4,8 +4,6 @@ use reqwest::blocking::Client;
 use std::env;
 use std::fs;
 use std::io::Read;
-use std::os::unix::process::CommandExt;
-use std::path::PathBuf;
 use std::process::Command;
 
 /// Applies an update by downloading the payload, verifying signature (if provided),
@@ -62,7 +60,7 @@ pub fn apply_update(
     let current_exe = env::current_exe()?;
     let args: Vec<String> = env::args().collect();
 
-    Command::new(current_exe).args(&args[1..]).exec(); // Will not return if successful
+    let _ = Command::new(current_exe).args(&args[1..]).spawn()?;
 
     Ok(())
 }

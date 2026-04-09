@@ -133,6 +133,8 @@ def verify_release_payload(payload: dict[str, Any], *, payload_path: Path | None
         path = Path(artifact_path)
         if not path.exists():
             raise FileNotFoundError(f"Release artifact missing: {path}")
+        if not path.is_file():
+            continue
         entry = manifest_by_path.get(str(path))
         if entry is None:
             raise ValueError(f"Artifact missing from release manifest: {path}")

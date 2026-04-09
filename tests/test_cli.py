@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
+import platform
 import subprocess
 from pathlib import Path
 
 from typer.testing import CliRunner
 
-from forge_cli.main import app, _launch_dev_server, _project_payload, _watch_snapshot
+from forge_cli.main import app, _launch_dev_server, _project_payload, _resolve_project_dir, _watch_snapshot
 
 
 runner = CliRunner()
@@ -83,6 +84,34 @@ def test_project_payload_reports_valid_project(tmp_path: Path) -> None:
     assert payload["plugins"]["enabled"] is False
     assert payload["template"]["valid"] is True
     assert payload["errors"] == []
+
+
+def test_resolve_project_dir_uses_cwd_relative_path(tmp_path: Path, monkeypatch) -> None:
+    project_dir = tmp_path / "app"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    (project_dir / "forge.toml").write_text("[app]\nname='x'\nversion='0.1.0'\n", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    assert _resolve_project_dir("app") == project_dir.resolve()
+
+
+def test_resolve_project_dir_falls_back_to_module_root(tmp_path: Path, monkeypatch) -> None:
+    module_root = tmp_path / "forge-framework"
+    fake_module_file = module_root / "forge_cli" / "main.py"
+    fake_module_file.parent.mkdir(parents=True, exist_ok=True)
+    fake_module_file.write_text("", encoding="utf-8")
+
+    fallback_project = module_root / ".ci" / "forge_todo"
+    fallback_project.mkdir(parents=True, exist_ok=True)
+    (fallback_project / "forge.toml").write_text("[app]\nname='x'\nversion='0.1.0'\n", encoding="utf-8")
+
+    cwd_project = tmp_path / ".ci" / "forge_todo"
+    cwd_project.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr("forge_cli.main.__file__", str(fake_module_file))
+    monkeypatch.chdir(tmp_path)
+
+    assert _resolve_project_dir(".ci/forge_todo") == fallback_project.resolve()
 
 
 def test_info_supports_json_output(tmp_path: Path, monkeypatch) -> None:
@@ -198,8 +227,8 @@ def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) 
     vite_config = (tmp_path / "workspace-app" / "vite.config.mjs").read_text(encoding="utf-8")
     forge_toml = (tmp_path / "workspace-app" / "forge.toml").read_text(encoding="utf-8")
 
-    assert package_json["devDependencies"]["@forge/vite-plugin"] == "^2.0.0"
-    assert package_json["dependencies"]["@forge/api"] == "^2.0.0"
+    assert package_json["devDependencies"]["@forgedesk/vite-plugin"] == "^2.0.0"
+    assert package_json["dependencies"]["@forgedesk/api"] == "^2.0.0"
     assert "forgeVitePlugin" in vite_config
     assert 'dev_server_command = "npm run dev"' in forge_toml
     assert 'dev_server_url = "http://127.0.0.1:5173"' in forge_toml
@@ -215,7 +244,7 @@ def test_templates_use_forge_api_package() -> None:
 
     for template_file in template_files:
         content = template_file.read_text(encoding="utf-8")
-        assert "@forge/api" in content
+        assert "@forgedesk/api" in content
         assert "window.__forge__" not in content
 
 
@@ -307,7 +336,7 @@ def test_build_supports_json_output_for_web_target(tmp_path: Path, monkeypatch) 
     assert payload["validation"]["ok"] is True
     assert payload["build"]["builder"] == "static-copy"
     assert payload["build"]["target"] == "web"
-    assert any(path.endswith("dist/static/forge.js") for path in payload["build"]["artifacts"])
+    assert any(path.replace("\\", "/").endswith("dist/static/forge.js") for path in payload["build"]["artifacts"])
 
 
 def test_build_returns_nonzero_json_for_missing_frontend(tmp_path: Path, monkeypatch) -> None:
@@ -335,7 +364,7 @@ def test_build_returns_nonzero_json_when_no_desktop_builder_available(tmp_path: 
         "forge_cli.main._module_available",
         lambda name: False if name == "nuitka" else True,
     )
-    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name == "maturin" else "/usr/bin/tool")
+    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name in ("maturin", "nuitka", "nuitka3") else "/usr/bin/tool")
 
     result = runner.invoke(app, ["build", "--result-format", "json"])
 
@@ -426,7 +455,8 @@ def test_build_generates_package_descriptors_for_protocol_handlers(tmp_path: Pat
     assert Path(package["manifest_path"]).exists()
     assert "package-manifest" in descriptor_types
     assert "protocol-manifest" in descriptor_types
-    assert "linux-desktop-entry" in descriptor_types
+    if platform.system() == "Linux":
+        assert "linux-desktop-entry" in descriptor_types
 
 
 def test_build_generates_plugin_contract_manifest(tmp_path: Path, monkeypatch) -> None:
@@ -646,6 +676,13 @@ def test_build_generates_linux_appimage_installer(tmp_path: Path, monkeypatch) -
     payload = json.loads(result.stdout)
     installer = next(item for item in payload["build"]["installers"] if item["format"] == "appimage")
     assert Path(installer["path"]).exists()
+    appdir = Path(installer["appdir"])
+    root_desktop = appdir / "cli-test.desktop"
+    shared_desktop = appdir / "usr" / "share" / "applications" / "cli-test.desktop"
+    assert root_desktop.exists()
+    assert shared_desktop.exists()
+    assert "Icon=cli-test" in root_desktop.read_text(encoding="utf-8")
+    assert (appdir / "cli-test.svg").exists()
 
 
 def test_build_generates_linux_flatpak_installer(tmp_path: Path, monkeypatch) -> None:
@@ -764,6 +801,54 @@ def test_build_generates_windows_nsis_installer(tmp_path: Path, monkeypatch) -> 
         lambda name: "/usr/bin/makensis" if name == "makensis" else "/usr/bin/tool",
     )
     monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Windows")
+    monkeypatch.setattr("forge_cli.main.subprocess.run", fake_run)
+
+    result = runner.invoke(app, ["build", "--result-format", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    installer = next(item for item in payload["build"]["installers"] if item["format"] == "nsis")
+    assert Path(installer["path"]).exists()
+
+
+def test_build_generates_windows_nsis_installer_with_fallback_path(tmp_path: Path, monkeypatch) -> None:
+    project_dir = _write_project(tmp_path)
+    config_path = project_dir / "forge.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        + "\n"
+        + "[packaging]\n"
+        + 'app_id = "dev.forge.cli"\n'
+        + 'product_name = "CLI Test"\n'
+        + 'formats = ["dir", "nsis"]\n',
+        encoding="utf-8",
+    )
+
+    nsis_dir = tmp_path / "Program Files (x86)" / "NSIS"
+    nsis_dir.mkdir(parents=True, exist_ok=True)
+    (nsis_dir / "makensis.exe").write_text("", encoding="utf-8")
+
+    def fake_run(args, **kwargs):
+        args = list(args)
+        if "-m" in args and "nuitka" in args:
+            output_arg = next(str(arg) for arg in args if str(arg).startswith("--output-dir="))
+            output_dir = Path(output_arg.split("=", 1)[1])
+            (output_dir / "cli_test.bin").write_text("binary", encoding="utf-8")
+        elif args and Path(str(args[0])).name.lower().startswith("makensis"):
+            script = Path(args[-1])
+            out_file = next(
+                line.split('"', 2)[1]
+                for line in script.read_text(encoding="utf-8").splitlines()
+                if line.startswith("OutFile ")
+            )
+            Path(out_file).write_text("nsis", encoding="utf-8")
+        return subprocess.CompletedProcess(args, 0, stdout="ok", stderr="")
+
+    monkeypatch.chdir(project_dir)
+    monkeypatch.setattr("forge_cli.main._module_available", lambda name: True)
+    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name == "makensis" else "/usr/bin/tool")
+    monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Windows")
+    monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path / "Program Files (x86)"))
     monkeypatch.setattr("forge_cli.main.subprocess.run", fake_run)
 
     result = runner.invoke(app, ["build", "--result-format", "json"])
