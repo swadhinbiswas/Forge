@@ -171,6 +171,23 @@ def _parse_version(version: str) -> tuple[int, int, int]:
     return tuple(parts[:3])  # type: ignore[return-value]
 
 
+def _resolve_project_dir(path: str | None) -> Path:
+    if not path:
+        return Path.cwd()
+
+    candidate = Path(path).resolve()
+    if (candidate / "forge.toml").exists():
+        return candidate
+
+    if not Path(path).is_absolute():
+        module_root = Path(__file__).resolve().parents[1]
+        fallback = (module_root / path).resolve()
+        if (fallback / "forge.toml").exists():
+            return fallback
+
+    return candidate
+
+
 def _version_satisfies_range(version: str, version_range: str) -> bool:
     current = _parse_version(version)
     for raw_constraint in [item.strip() for item in version_range.split(",") if item.strip()]:
@@ -681,6 +698,7 @@ def _select_desktop_build_tool(project_dir: Path) -> dict[str, Any]:
     cargo_toml = project_dir / "Cargo.toml"
     maturin_path = shutil.which("maturin")
     nuitka_available = _module_available("nuitka")
+    nuitka_path = shutil.which("nuitka")
 
     if cargo_toml.exists() and maturin_path:
         return {
@@ -690,12 +708,12 @@ def _select_desktop_build_tool(project_dir: Path) -> dict[str, Any]:
             "path": maturin_path,
         }
 
-    if nuitka_available:
+    if nuitka_available or nuitka_path:
         return {
             "name": "nuitka",
             "mode": "python",
             "available": True,
-            "path": sys.executable,
+            "path": nuitka_path or sys.executable,
         }
 
     return {
@@ -1030,8 +1048,54 @@ def _windows_upgrade_code(app_id: str) -> str:
     return "{" + str(uuid.uuid5(uuid.NAMESPACE_URL, f"forge:{app_id}")).upper() + "}"
 
 
+def _find_packaging_tool(tool_name: str) -> str | None:
+    direct = shutil.which(tool_name)
+    if direct:
+        return direct
+
+    if platform.system() != "Windows":
+        return None
+
+    normalized = tool_name.lower()
+    candidates: list[str] = [tool_name]
+    if not normalized.endswith((".exe", ".cmd", ".bat")):
+        candidates.extend([f"{tool_name}.exe", f"{tool_name}.cmd", f"{tool_name}.bat"])
+
+    roots: list[Path] = []
+    for env_key in ("ChocolateyInstall", "ProgramFiles", "ProgramFiles(x86)", "ProgramW6432"):
+        raw = os.environ.get(env_key)
+        if raw:
+            roots.append(Path(raw))
+
+    fallback_dirs: list[Path] = []
+    if normalized.startswith("makensis"):
+        for root in roots:
+            fallback_dirs.extend([
+                root / "NSIS",
+                root / "nsis",
+                root / "NSIS" / "Bin",
+                root / "nsis" / "bin",
+            ])
+    elif normalized in {"candle", "light"}:
+        for root in roots:
+            fallback_dirs.extend([
+                root / "WiX Toolset v3.11" / "bin",
+                root / "WiX Toolset v3.14" / "bin",
+                root / "wix toolset v3.11" / "bin",
+                root / "wix toolset v3.14" / "bin",
+            ])
+
+    for directory in fallback_dirs:
+        for candidate in candidates:
+            candidate_path = directory / candidate
+            if candidate_path.exists():
+                return str(candidate_path)
+
+    return None
+
+
 def _require_tool(tool_name: str, reason: str) -> str:
-    tool_path = shutil.which(tool_name)
+    tool_path = _find_packaging_tool(tool_name)
     if not tool_path:
         raise FileNotFoundError(f"Required packaging tool '{tool_name}' not found: {reason}")
     return tool_path
@@ -1041,18 +1105,18 @@ def _validate_installer_tooling(config: Any, errors: list[str]) -> None:
     current_platform = platform.system()
     formats = set(config.packaging.formats)
 
-    if current_platform == "Darwin" and "dmg" in formats and not shutil.which("hdiutil"):
+    if current_platform == "Darwin" and "dmg" in formats and not _find_packaging_tool("hdiutil"):
         errors.append("Packaging format 'dmg' requires the 'hdiutil' tool on macOS.")
-    if current_platform == "Windows" and "nsis" in formats and not shutil.which("makensis"):
+    if current_platform == "Windows" and "nsis" in formats and not _find_packaging_tool("makensis"):
         errors.append("Packaging format 'nsis' requires the 'makensis' tool on Windows.")
     if current_platform == "Windows" and "msi" in formats and not (
-        shutil.which("wixl") or (shutil.which("candle") and shutil.which("light"))
+        _find_packaging_tool("wixl") or (_find_packaging_tool("candle") and _find_packaging_tool("light"))
     ):
         errors.append("Packaging format 'msi' requires 'wixl' or the WiX toolset ('candle' and 'light').")
-    if current_platform == "Linux" and "appimage" in formats and not shutil.which("appimagetool"):
+    if current_platform == "Linux" and "appimage" in formats and not _find_packaging_tool("appimagetool"):
         errors.append("Packaging format 'appimage' requires the 'appimagetool' binary on Linux.")
     if current_platform == "Linux" and "flatpak" in formats and not (
-        shutil.which("flatpak-builder") and shutil.which("flatpak")
+        _find_packaging_tool("flatpak-builder") and _find_packaging_tool("flatpak")
     ):
         errors.append("Packaging format 'flatpak' requires both 'flatpak-builder' and 'flatpak' on Linux.")
 
@@ -1249,12 +1313,16 @@ def _build_windows_msi_installer(
         encoding="utf-8",
     )
 
-    if shutil.which("wixl"):
-        subprocess.run(["wixl", "-o", str(msi_path), str(wix_source)], check=True, capture_output=True, text=True)
-    elif shutil.which("candle") and shutil.which("light"):
+    wixl = _find_packaging_tool("wixl")
+    candle = _find_packaging_tool("candle")
+    light = _find_packaging_tool("light")
+
+    if wixl:
+        subprocess.run([wixl, "-o", str(msi_path), str(wix_source)], check=True, capture_output=True, text=True)
+    elif candle and light:
         wixobj_path = output_dir / f"{_slugify(product_name)}.wixobj"
-        subprocess.run(["candle", "-out", str(wixobj_path), str(wix_source)], check=True, capture_output=True, text=True)
-        subprocess.run(["light", "-out", str(msi_path), str(wixobj_path)], check=True, capture_output=True, text=True)
+        subprocess.run([candle, "-out", str(wixobj_path), str(wix_source)], check=True, capture_output=True, text=True)
+        subprocess.run([light, "-out", str(msi_path), str(wixobj_path)], check=True, capture_output=True, text=True)
     else:
         raise FileNotFoundError(
             "Packaging format 'msi' requires 'wixl' or the WiX toolset ('candle' and 'light')."
@@ -1385,6 +1453,7 @@ def _build_linux_appimage_installer(
 
     product_name = config.packaging.product_name or config.app.name
     slug = _slugify(product_name)
+    icon_basename = slug
     appdir = output_dir / f"{product_name}.AppDir"
     usr_bin = appdir / "usr" / "bin"
     usr_share = appdir / "usr" / "share" / "applications"
@@ -1393,21 +1462,49 @@ def _build_linux_appimage_installer(
     binary_dest = usr_bin / primary_binary.name
     shutil.copy2(primary_binary, binary_dest)
 
+    desktop_content = "\n".join(
+        [
+            "[Desktop Entry]",
+            "Type=Application",
+            f"Name={product_name}",
+            f"Exec={primary_binary.name}",
+            f"Icon={icon_basename}",
+            "Terminal=false",
+            f"Categories={config.packaging.category or 'Utility'};",
+        ]
+    ) + "\n"
+
     desktop_file = usr_share / f"{slug}.desktop"
     desktop_file.write_text(
-        "\n".join(
-            [
-                "[Desktop Entry]",
-                "Type=Application",
-                f"Name={product_name}",
-                f"Exec={primary_binary.name}",
-                "Terminal=false",
-                f"Categories={config.packaging.category or 'Utility'};",
-            ]
-        )
-        + "\n",
+        desktop_content,
         encoding="utf-8",
     )
+
+    appdir_desktop = appdir / f"{slug}.desktop"
+    appdir_desktop.write_text(
+        desktop_content,
+        encoding="utf-8",
+    )
+
+    icon_written = False
+    icon_candidate = getattr(getattr(config, "build", None), "icon", None)
+    if icon_candidate:
+        source_icon = Path(icon_candidate)
+        if not source_icon.is_absolute():
+            source_icon = output_dir.parent / source_icon
+        if source_icon.exists() and source_icon.suffix.lower() in {".png", ".svg", ".xpm"}:
+            shutil.copy2(source_icon, appdir / f"{icon_basename}{source_icon.suffix.lower()}")
+            icon_written = True
+
+    if not icon_written:
+        (appdir / f"{icon_basename}.svg").write_text(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\">"
+            "<rect width=\"256\" height=\"256\" rx=\"48\" fill=\"#1E293B\"/>"
+            "<path d=\"M72 92h112v20H72zm0 52h112v20H72z\" fill=\"#F8FAFC\"/>"
+            "</svg>\n",
+            encoding="utf-8",
+        )
+
     apprun = appdir / "AppRun"
     apprun.write_text(
         "#!/bin/sh\nDIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\nexec \"$DIR/usr/bin/"
@@ -1845,9 +1942,10 @@ def _release_manifest_payload(config: Any, target: str, build_result: dict[str, 
         "packaging": build_result.get("package"),
         "signing": build_result.get("signing"),
         "notarization": build_result.get("notarization"),
+        "provenance": build_result.get("provenance", {}),
+        "version_alignment": build_result.get("version_alignment", {}),
         "artifacts": artifacts,
     }
-
 
 def _module_available(name: str) -> bool:
     try:
@@ -2305,7 +2403,7 @@ def dev_mode(
     _print_header("Dev Mode", "Launch the desktop runtime with live feedback")
 
     # Find project directory
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
 
     if not config_path.exists():
@@ -2391,7 +2489,7 @@ def serve_app(
     _print_header("Web Server", "Run the Forge app as an ASGI service")
 
     # Find project directory
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
 
     if not config_path.exists():
@@ -2524,7 +2622,7 @@ def build_app(
         raise typer.Exit(2)
 
     # Find project directory
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     normalized_target = target.lower()
 
@@ -2702,7 +2800,8 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
         ]
     else:
         # Validate Nuitka is actually available before attempting a build
-        if not _module_available("nuitka"):
+        nuitka_path = shutil.which("nuitka") or shutil.which("nuitka3")
+        if not _module_available("nuitka") and not nuitka_path:
             raise RuntimeError(
                 "No supported build tool found. "
                 "Install maturin (for Rust+Python hybrid) or Nuitka (pip install nuitka) "
@@ -2710,21 +2809,41 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
             )
         if emit_output:
             _print_note("Using Nuitka for Python compilation", level="ok")
-        build_args = [
-            sys.executable,
-            "-m",
-            "nuitka",
-            "--standalone",
+        
+        build_args = [sys.executable, "-m", "nuitka"]
+        if not _module_available("nuitka") and nuitka_path:
+            build_args = [nuitka_path]
+
+        build_args.extend([
+            "--onefile",
+            "--assume-yes-for-downloads",
             "--output-dir=" + str(output_dir),
             "--output-filename=" + app_name,
-        ]
+        ])
+
+        if (project_dir / "forge.toml").exists():
+            build_args.extend([f"--include-data-file={project_dir / 'forge.toml'}=forge.toml"])
+
 
         if config.build.icon and (project_dir / config.build.icon).exists():
             build_args.extend(["--linux-icon=" + str(project_dir / config.build.icon)])
 
         build_args.append(str(entry_path))
 
-    subprocess.run(build_args, check=True, capture_output=True, text=True)
+    # Prepare subprocess environment
+    subprocess_env = os.environ.copy()
+    
+    # For Nuitka on Linux, ensure patchelf is available
+    if builder == "nuitka" and sys.platform == "linux":
+        patchelf_path = shutil.which("patchelf")
+        if not patchelf_path:
+            potential_patchelf = Path(sys.executable).parent / "patchelf"
+            if potential_patchelf.exists():
+                # Prepend venv bin to PATH for patchelf access
+                current_path = subprocess_env.get("PATH", "/usr/local/bin:/usr/bin:/bin")
+                subprocess_env["PATH"] = str(potential_patchelf.parent) + ":" + current_path
+
+    subprocess.run(build_args, check=True, capture_output=True, text=True, env=subprocess_env)
 
     after_snapshot = _artifact_snapshot(output_dir)
     artifacts.extend(sorted(after_snapshot - before_snapshot))
@@ -2835,7 +2954,7 @@ def package_app(
         _print_note(f"Unsupported output format: {result_format}", level="error")
         raise typer.Exit(2)
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     payload: dict[str, Any] = {
         "forge_version": VERSION,
@@ -2922,7 +3041,7 @@ def sign_app(
         _print_note(f"Unsupported output format: {result_format}", level="error")
         raise typer.Exit(2)
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     payload: dict[str, Any] = {
         "forge_version": VERSION,
@@ -3039,7 +3158,7 @@ def release_app(
         _print_note(f"Unsupported output format: {result_format}", level="error")
         raise typer.Exit(2)
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
     normalized_target = target.lower()
     payload: dict[str, Any] = {
@@ -3133,7 +3252,7 @@ def show_info(
 
     Shows details about your system, Python installation, and Forge project.
     """
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     payload = {
         "forge_version": VERSION,
         "environment": _environment_payload(),
@@ -3197,7 +3316,7 @@ def doctor(
     ),
 ) -> None:
     """Validate environment and project prerequisites for Forge development."""
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     payload = _doctor_payload(project_dir)
 
     if output == "json":
@@ -3300,7 +3419,7 @@ def plugin_add(
     """
     _print_header("Plugin Add", f"Install plugin: {name}")
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
     config_path = project_dir / "forge.toml"
 
     if not config_path.exists():
@@ -3372,7 +3491,7 @@ def support_bundle(
     """
     _print_header("Support Bundle", "Collect diagnostics for troubleshooting")
 
-    project_dir = Path(path).resolve() if path else Path.cwd()
+    project_dir = _resolve_project_dir(path)
 
     if output:
         bundle_path = Path(output).resolve()
