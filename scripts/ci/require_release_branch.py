@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 ALLOWED_PATTERNS = (
     re.compile(r"^main$"),
+    re.compile(r"^master$"),
     re.compile(r"^release/[A-Za-z0-9._-]+$"),
     re.compile(r"^release-[A-Za-z0-9._-]+$"),
 )
