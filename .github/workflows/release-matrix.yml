@@ -14,14 +14,17 @@ jobs:
         include:
           - os: ubuntu-latest
             formats: dir,deb,appimage,flatpak
+            formats_key: dir-deb-appimage-flatpak
             app_id: dev.forge.todo.linux
             product_name: Forge Todo Linux
           - os: macos-latest
             formats: dir,app,dmg
+            formats_key: dir-app-dmg
             app_id: dev.forge.todo.macos
             product_name: Forge Todo macOS
           - os: windows-latest
             formats: dir,msi,nsis
+            formats_key: dir-msi-nsis
             app_id: dev.forge.todo.windows
             product_name: Forge Todo Windows
     runs-on: ${{ matrix.os }}
@@ -149,9 +152,9 @@ jobs:
           path: |
             build-result.json
             .ci/forge_todo/dist
-          key: release-state-${{ runner.os }}-${{ matrix.formats }}-${{ github.sha }}
+          key: release-state-${{ runner.os }}-${{ matrix.formats_key }}-${{ github.sha }}
           restore-keys: |
-            release-state-${{ runner.os }}-${{ matrix.formats }}-${{ github.sha }}-
+            release-state-${{ runner.os }}-${{ matrix.formats_key }}-${{ github.sha }}-
 
       - name: Build release fixture
         shell: bash
@@ -170,7 +173,7 @@ jobs:
           path: |
             build-result.json
             .ci/forge_todo/dist
-          key: release-state-${{ runner.os }}-${{ matrix.formats }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: release-state-${{ runner.os }}-${{ matrix.formats_key }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Verify release artifacts
         run: python scripts/ci/verify_release_artifacts.py --build-result build-result.json
