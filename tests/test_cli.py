@@ -681,6 +681,8 @@ def test_build_generates_linux_appimage_installer(tmp_path: Path, monkeypatch) -
     shared_desktop = appdir / "usr" / "share" / "applications" / "cli-test.desktop"
     assert root_desktop.exists()
     assert shared_desktop.exists()
+    assert "Icon=cli-test" in root_desktop.read_text(encoding="utf-8")
+    assert (appdir / "cli-test.svg").exists()
 
 
 def test_build_generates_linux_flatpak_installer(tmp_path: Path, monkeypatch) -> None:

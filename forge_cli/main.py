@@ -1403,6 +1403,7 @@ def _build_linux_appimage_installer(
 
     product_name = config.packaging.product_name or config.app.name
     slug = _slugify(product_name)
+    icon_basename = slug
     appdir = output_dir / f"{product_name}.AppDir"
     usr_bin = appdir / "usr" / "bin"
     usr_share = appdir / "usr" / "share" / "applications"
@@ -1417,6 +1418,7 @@ def _build_linux_appimage_installer(
             "Type=Application",
             f"Name={product_name}",
             f"Exec={primary_binary.name}",
+            f"Icon={icon_basename}",
             "Terminal=false",
             f"Categories={config.packaging.category or 'Utility'};",
         ]
@@ -1433,6 +1435,26 @@ def _build_linux_appimage_installer(
         desktop_content,
         encoding="utf-8",
     )
+
+    icon_written = False
+    icon_candidate = getattr(getattr(config, "build", None), "icon", None)
+    if icon_candidate:
+        source_icon = Path(icon_candidate)
+        if not source_icon.is_absolute():
+            source_icon = output_dir.parent / source_icon
+        if source_icon.exists() and source_icon.suffix.lower() in {".png", ".svg", ".xpm"}:
+            shutil.copy2(source_icon, appdir / f"{icon_basename}{source_icon.suffix.lower()}")
+            icon_written = True
+
+    if not icon_written:
+        (appdir / f"{icon_basename}.svg").write_text(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\">"
+            "<rect width=\"256\" height=\"256\" rx=\"48\" fill=\"#1E293B\"/>"
+            "<path d=\"M72 92h112v20H72zm0 52h112v20H72z\" fill=\"#F8FAFC\"/>"
+            "</svg>\n",
+            encoding="utf-8",
+        )
+
     apprun = appdir / "AppRun"
     apprun.write_text(
         "#!/bin/sh\nDIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\nexec \"$DIR/usr/bin/"
