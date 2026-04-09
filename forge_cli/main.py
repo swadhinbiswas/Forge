@@ -1846,9 +1846,10 @@ def _release_manifest_payload(config: Any, target: str, build_result: dict[str, 
         "packaging": build_result.get("package"),
         "signing": build_result.get("signing"),
         "notarization": build_result.get("notarization"),
+        "provenance": build_result.get("provenance", {}),
+        "version_alignment": build_result.get("version_alignment", {}),
         "artifacts": artifacts,
     }
-
 
 def _module_available(name: str) -> bool:
     try:
