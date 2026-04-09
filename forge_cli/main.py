@@ -2719,7 +2719,8 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
             build_args = [nuitka_path]
 
         build_args.extend([
-            "--standalone",
+            "--onefile",
+            "--assume-yes-for-downloads",
             "--output-dir=" + str(output_dir),
             "--output-filename=" + app_name,
         ])
