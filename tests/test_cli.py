@@ -811,6 +811,54 @@ def test_build_generates_windows_nsis_installer(tmp_path: Path, monkeypatch) -> 
     assert Path(installer["path"]).exists()
 
 
+def test_build_generates_windows_nsis_installer_with_fallback_path(tmp_path: Path, monkeypatch) -> None:
+    project_dir = _write_project(tmp_path)
+    config_path = project_dir / "forge.toml"
+    config_path.write_text(
+        config_path.read_text(encoding="utf-8")
+        + "\n"
+        + "[packaging]\n"
+        + 'app_id = "dev.forge.cli"\n'
+        + 'product_name = "CLI Test"\n'
+        + 'formats = ["dir", "nsis"]\n',
+        encoding="utf-8",
+    )
+
+    nsis_dir = tmp_path / "Program Files (x86)" / "NSIS"
+    nsis_dir.mkdir(parents=True, exist_ok=True)
+    (nsis_dir / "makensis.exe").write_text("", encoding="utf-8")
+
+    def fake_run(args, **kwargs):
+        args = list(args)
+        if "-m" in args and "nuitka" in args:
+            output_arg = next(str(arg) for arg in args if str(arg).startswith("--output-dir="))
+            output_dir = Path(output_arg.split("=", 1)[1])
+            (output_dir / "cli_test.bin").write_text("binary", encoding="utf-8")
+        elif args and Path(str(args[0])).name.lower().startswith("makensis"):
+            script = Path(args[-1])
+            out_file = next(
+                line.split('"', 2)[1]
+                for line in script.read_text(encoding="utf-8").splitlines()
+                if line.startswith("OutFile ")
+            )
+            Path(out_file).write_text("nsis", encoding="utf-8")
+        return subprocess.CompletedProcess(args, 0, stdout="ok", stderr="")
+
+    monkeypatch.chdir(project_dir)
+    monkeypatch.setattr("forge_cli.main._module_available", lambda name: True)
+    monkeypatch.setattr("forge_cli.main.shutil.which", lambda name: None if name == "makensis" else "/usr/bin/tool")
+    monkeypatch.setattr("forge_cli.main.platform.system", lambda: "Windows")
+    monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path / "Program Files (x86)"))
+    monkeypatch.setattr("forge_cli.main.subprocess.run", fake_run)
+
+    result = runner.invoke(app, ["build", "--result-format", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    installer = next(item for item in payload["build"]["installers"] if item["format"] == "nsis")
+    assert Path(installer["path"]).exists()
+
+
 def test_build_fails_when_appimage_tool_is_missing(tmp_path: Path, monkeypatch) -> None:
     project_dir = _write_project(tmp_path)
     config_path = project_dir / "forge.toml"

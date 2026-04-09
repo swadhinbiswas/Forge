@@ -1048,8 +1048,54 @@ def _windows_upgrade_code(app_id: str) -> str:
     return "{" + str(uuid.uuid5(uuid.NAMESPACE_URL, f"forge:{app_id}")).upper() + "}"
 
 
+def _find_packaging_tool(tool_name: str) -> str | None:
+    direct = shutil.which(tool_name)
+    if direct:
+        return direct
+
+    if platform.system() != "Windows":
+        return None
+
+    normalized = tool_name.lower()
+    candidates: list[str] = [tool_name]
+    if not normalized.endswith((".exe", ".cmd", ".bat")):
+        candidates.extend([f"{tool_name}.exe", f"{tool_name}.cmd", f"{tool_name}.bat"])
+
+    roots: list[Path] = []
+    for env_key in ("ChocolateyInstall", "ProgramFiles", "ProgramFiles(x86)", "ProgramW6432"):
+        raw = os.environ.get(env_key)
+        if raw:
+            roots.append(Path(raw))
+
+    fallback_dirs: list[Path] = []
+    if normalized.startswith("makensis"):
+        for root in roots:
+            fallback_dirs.extend([
+                root / "NSIS",
+                root / "nsis",
+                root / "NSIS" / "Bin",
+                root / "nsis" / "bin",
+            ])
+    elif normalized in {"candle", "light"}:
+        for root in roots:
+            fallback_dirs.extend([
+                root / "WiX Toolset v3.11" / "bin",
+                root / "WiX Toolset v3.14" / "bin",
+                root / "wix toolset v3.11" / "bin",
+                root / "wix toolset v3.14" / "bin",
+            ])
+
+    for directory in fallback_dirs:
+        for candidate in candidates:
+            candidate_path = directory / candidate
+            if candidate_path.exists():
+                return str(candidate_path)
+
+    return None
+
+
 def _require_tool(tool_name: str, reason: str) -> str:
-    tool_path = shutil.which(tool_name)
+    tool_path = _find_packaging_tool(tool_name)
     if not tool_path:
         raise FileNotFoundError(f"Required packaging tool '{tool_name}' not found: {reason}")
     return tool_path
@@ -1059,18 +1105,18 @@ def _validate_installer_tooling(config: Any, errors: list[str]) -> None:
     current_platform = platform.system()
     formats = set(config.packaging.formats)
 
-    if current_platform == "Darwin" and "dmg" in formats and not shutil.which("hdiutil"):
+    if current_platform == "Darwin" and "dmg" in formats and not _find_packaging_tool("hdiutil"):
         errors.append("Packaging format 'dmg' requires the 'hdiutil' tool on macOS.")
-    if current_platform == "Windows" and "nsis" in formats and not shutil.which("makensis"):
+    if current_platform == "Windows" and "nsis" in formats and not _find_packaging_tool("makensis"):
         errors.append("Packaging format 'nsis' requires the 'makensis' tool on Windows.")
     if current_platform == "Windows" and "msi" in formats and not (
-        shutil.which("wixl") or (shutil.which("candle") and shutil.which("light"))
+        _find_packaging_tool("wixl") or (_find_packaging_tool("candle") and _find_packaging_tool("light"))
     ):
         errors.append("Packaging format 'msi' requires 'wixl' or the WiX toolset ('candle' and 'light').")
-    if current_platform == "Linux" and "appimage" in formats and not shutil.which("appimagetool"):
+    if current_platform == "Linux" and "appimage" in formats and not _find_packaging_tool("appimagetool"):
         errors.append("Packaging format 'appimage' requires the 'appimagetool' binary on Linux.")
     if current_platform == "Linux" and "flatpak" in formats and not (
-        shutil.which("flatpak-builder") and shutil.which("flatpak")
+        _find_packaging_tool("flatpak-builder") and _find_packaging_tool("flatpak")
     ):
         errors.append("Packaging format 'flatpak' requires both 'flatpak-builder' and 'flatpak' on Linux.")
 
@@ -1267,12 +1313,16 @@ def _build_windows_msi_installer(
         encoding="utf-8",
     )
 
-    if shutil.which("wixl"):
-        subprocess.run(["wixl", "-o", str(msi_path), str(wix_source)], check=True, capture_output=True, text=True)
-    elif shutil.which("candle") and shutil.which("light"):
+    wixl = _find_packaging_tool("wixl")
+    candle = _find_packaging_tool("candle")
+    light = _find_packaging_tool("light")
+
+    if wixl:
+        subprocess.run([wixl, "-o", str(msi_path), str(wix_source)], check=True, capture_output=True, text=True)
+    elif candle and light:
         wixobj_path = output_dir / f"{_slugify(product_name)}.wixobj"
-        subprocess.run(["candle", "-out", str(wixobj_path), str(wix_source)], check=True, capture_output=True, text=True)
-        subprocess.run(["light", "-out", str(msi_path), str(wixobj_path)], check=True, capture_output=True, text=True)
+        subprocess.run([candle, "-out", str(wixobj_path), str(wix_source)], check=True, capture_output=True, text=True)
+        subprocess.run([light, "-out", str(msi_path), str(wixobj_path)], check=True, capture_output=True, text=True)
     else:
         raise FileNotFoundError(
             "Packaging format 'msi' requires 'wixl' or the WiX toolset ('candle' and 'light')."
