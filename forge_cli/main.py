@@ -2732,9 +2732,17 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
         if config.build.icon and (project_dir / config.build.icon).exists():
             build_args.extend(["--linux-icon=" + str(project_dir / config.build.icon)])
 
-        build_args.append(str(entry_path))
+    # Prepare subprocess environment for patchelf on Linux
+    subprocess_env = None
+    if builder == "nuitka" and sys.platform == "linux":
+        subprocess_env = os.environ.copy()
+        patchelf_path = shutil.which("patchelf")
+        if not patchelf_path:
+            potential_patchelf = Path(sys.executable).parent / "patchelf"
+            if potential_patchelf.exists():
+                subprocess_env["PATH"] = str(potential_patchelf.parent) + ":" + subprocess_env.get("PATH", "")
 
-    subprocess.run(build_args, check=True, capture_output=True, text=True)
+    subprocess.run(build_args, check=True, capture_output=True, text=True, env=subprocess_env)
 
     after_snapshot = _artifact_snapshot(output_dir)
     artifacts.extend(sorted(after_snapshot - before_snapshot))
