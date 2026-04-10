@@ -60,6 +60,12 @@ Or scaffold from npm:
 npm create forge-app@latest my-app -- --template react
 ```
 
+If your npm is pointed to a mirror that has not synced the latest package yet, use:
+
+```bash
+npx --registry=https://registry.npmjs.org @forgedesk/create-forge-app@latest my-app -- --template react
+```
+
 Generated projects retain template contract metadata in `forge.toml` so CLI diagnostics can detect incompatible or stale template outputs.
 
 ### Security Policy

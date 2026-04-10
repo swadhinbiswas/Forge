@@ -2247,11 +2247,17 @@ def version() -> None:
 @app.command("create")
 def create_project(
     name: Optional[str] = typer.Argument(None, help="Project name"),
-    template: str = typer.Option(
-        "plain",
+    template: Optional[str] = typer.Option(
+        None,
         "-t",
         "--template",
-        help="Project template (plain, react, vue, svelte, astro, next, nuxt, sveltekit, qwik, solid, preact, angular)",
+        help="Project template (plain, react, vue, svelte, complex)",
+    ),
+    framework: Optional[str] = typer.Option(
+        None,
+        "-f",
+        "--framework",
+        help="Framework alias for template (plain, react, vue, svelte, complex)",
     ),
     window_size: str = typer.Option(
         "1280x800",
@@ -2275,8 +2281,17 @@ def create_project(
     """
     _print_header("Create App", "Scaffold a new Forge workspace")
 
-    # Validate template
     valid_templates = ["plain", "react", "vue", "svelte", "complex"]
+
+    if template and framework and template != framework:
+        _print_note("Provide either --template or --framework, or use the same value for both.", level="error")
+        raise typer.Exit(1)
+
+    selected_template = framework or template
+    if not selected_template:
+        selected_template = Prompt.ask("Choose template", choices=valid_templates, default="plain")
+
+    template = selected_template.lower().strip()
     if template not in valid_templates:
         _print_note(f"Invalid template. Choose from: {', '.join(valid_templates)}", level="error")
         raise typer.Exit(1)
