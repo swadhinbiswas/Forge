@@ -15,7 +15,7 @@ description = "Build powerful, cross-platform desktop and web applications using
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Forge Team", email = "forge@example.com"}
+    {name = "Swadhin Biswas", email = "swadhinbiswas.cse@gmail.com"}
 ]
 keywords = [
     "desktop",
