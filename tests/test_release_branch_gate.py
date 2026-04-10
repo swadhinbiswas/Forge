@@ -17,6 +17,7 @@ check_branch = _module.check_branch
 
 def test_release_branch_patterns() -> None:
     assert is_allowed_release_branch("main") is True
+    assert is_allowed_release_branch("master") is True
     assert is_allowed_release_branch("release/2026.03") is True
     assert is_allowed_release_branch("release-hotfix") is True
     assert is_allowed_release_branch("feature/new-ui") is False
