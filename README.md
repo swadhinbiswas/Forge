@@ -102,14 +102,14 @@ Forge now includes first-party package scaffolding for dual ecosystem distributi
 - [packages/api/README.md](packages/api/README.md) — `@forge/api` typed JS bindings
 - [packages/cli/README.md](packages/cli/README.md) — `@forge/cli` Node wrapper around the Python CLI
 - [packages/vite-plugin/README.md](packages/vite-plugin/README.md) — `@forge/vite-plugin` frontend integration for Vite
-- [packages/create-forge-app/README.md](packages/create-forge-app/README.md) — `create-forge-app` npm scaffolder
+- [packages/create-forge-app/README.md](packages/create-forge-app/README.md) — `@forgedesk/create-forge-app` npm scaffolder
 
 This is the first step toward a Tauri-style install flow where frontend teams can start with npm while backend/runtime users can keep using pip.
 
 Forge can now be prepared for publication to both registries:
 
 - PyPI package: `forge-framework`
-- npm packages: `@forge/api`, `@forge/cli`, `@forge/vite-plugin`, and `create-forge-app`
+- npm packages: `@forge/api`, `@forge/cli`, `@forge/vite-plugin`, and `@forgedesk/create-forge-app`
 
 Release quality is enforced in CI with version-alignment checks, release-branch gating, release-manifest verification, and installer smoke tests before publishing.
 
