@@ -3727,54 +3727,72 @@ def _setup_python_env(project_dir: Path) -> None:
     _print_note("Preparing Python environment (uv-first)...", level="ok")
 
     def _ensure_uv() -> str | None:
-        direct = shutil.which("uv")
-        if direct:
-            return direct
-
-        install_attempts = [
-            [sys.executable, "-m", "pip", "install", "--user", "uv"],
-            [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                "--user",
-                "--break-system-packages",
-                "uv",
-            ],
-        ]
-        for command in install_attempts:
-            try:
-                subprocess.run(command, check=True)
-                break
-            except Exception:
-                continue
-        else:
+        def _locate_uv() -> str | None:
+            direct = shutil.which("uv")
+            if direct:
+                return direct
+            home = Path.home()
+            candidates = [
+                home / ".local" / "bin" / "uv",
+                home / ".cargo" / "bin" / "uv",
+                home / "AppData" / "Local" / "uv" / "bin" / "uv.exe",
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    return str(candidate)
             return None
 
-        return shutil.which("uv")
+        existing = _locate_uv()
+        if existing:
+            return existing
+
+        try:
+            if sys.platform == "win32":
+                subprocess.run(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command",
+                        "irm https://astral.sh/uv/install.ps1 | iex",
+                    ],
+                    check=True,
+                )
+            else:
+                subprocess.run(
+                    [
+                        "sh",
+                        "-c",
+                        "set -e; if command -v curl >/dev/null 2>&1; then curl -LsSf https://astral.sh/uv/install.sh | sh; elif command -v wget >/dev/null 2>&1; then wget -qO- https://astral.sh/uv/install.sh | sh; else exit 1; fi",
+                    ],
+                    check=True,
+                )
+        except Exception:
+            return None
+
+        return _locate_uv()
 
     uv_path = _ensure_uv()
     python_exe = venv_dir / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
 
+    uv_env = os.environ.copy()
+    uv_env.setdefault("UV_LINK_MODE", "copy")
+
     if uv_path:
         try:
-            subprocess.run([uv_path, "venv", str(venv_dir)], check=True)
+            subprocess.run(
+                [uv_path, "venv", str(venv_dir), "--python", "3.14", "--allow-existing"],
+                check=True,
+                env=uv_env,
+            )
             _print_note("Created .venv using uv", level="ok")
         except subprocess.CalledProcessError as exc:
-            _print_note(f"uv venv failed, falling back to stdlib venv: {exc}", level="warning")
-            try:
-                venv.create(venv_dir, with_pip=True)
-            except Exception as e:
-                _print_note(f"Failed to create virtual environment: {e}", level="error")
-                return
-    else:
-        _print_note("uv not found; falling back to stdlib venv", level="warning")
-        try:
-            venv.create(venv_dir, with_pip=True)
-        except Exception as e:
-            _print_note(f"Failed to create virtual environment: {e}", level="error")
+            _print_note(f"uv venv failed: {exc}", level="error")
             return
+    else:
+        _print_note("uv is required but could not be installed automatically.", level="error")
+        return
 
     _print_note("Installing Python dependencies...", level="ok")
     
@@ -3792,10 +3810,11 @@ def _setup_python_env(project_dir: Path) -> None:
         deps.append("forge-framework")
     
     try:
-        if uv_path:
-            subprocess.run([uv_path, "pip", "install", "--python", str(python_exe), *deps], check=True)
-        else:
-            subprocess.run([str(python_exe), "-m", "pip", "install", *deps], check=True)
+        subprocess.run(
+            [uv_path, "pip", "install", "--python", str(python_exe), *deps],
+            check=True,
+            env=uv_env,
+        )
         _print_note("Python environment configured successfully", level="ok")
     except subprocess.CalledProcessError as e:
         _print_note(f"Failed to install dependencies: {e}", level="warning")
