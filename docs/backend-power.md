@@ -41,7 +41,7 @@ def fetch_popular_movies():
 And your frontend simply invokes:
 
 ```javascript
-import { invoke } from '@forge/api';
+import { invoke } from '@forgedesk/api';
 const popularMovies = await invoke('fetch_popular_movies');
 ```
 

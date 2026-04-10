@@ -23,7 +23,7 @@ def main() -> None:
         import sys
         print(
             "Error: forge-cli is not installed.\n"
-            "Install it with: pip install forge-framework[cli]",
+            "Install it with: pip install forgedesk[cli]",
             file=sys.stderr,
         )
         sys.exit(1)

@@ -28,7 +28,7 @@ Build lightweight, cross-platform desktop applications using Python as the backe
 ### Installation
 
 ```bash
-pip install forge-framework
+pip install forgedesk
 ```
 
 Or install the Node-facing packages:
@@ -40,7 +40,7 @@ npm install -D @forgedesk/vite-plugin vite
 npm create forge-app@latest my-app
 ```
 
-The npm wrappers bootstrap the Python runtime by delegating to `forge-framework`.
+The npm wrappers bootstrap the Python runtime by delegating to `forgedesk`.
 
 ### Create a New Project
 
@@ -114,7 +114,7 @@ This is the first step toward a Tauri-style install flow where frontend teams ca
 
 Forge can now be prepared for publication to both registries:
 
-- PyPI package: `forge-framework`
+- PyPI package: `forgedesk`
 - npm packages: `@forgedesk/api`, `@forgedesk/cli`, `@forgedesk/vite-plugin`, and `@forgedesk/create-forge-app`
 
 Release quality is enforced in CI with version-alignment checks, release-branch gating, release-manifest verification, and installer smoke tests before publishing.
@@ -574,7 +574,7 @@ forge dev
 
 ```bash
 # Clone the repository
-git clone https://github.com/forge-framework/forge.git
+git clone https://github.com/swadhinbiswas/ForgeDesk.git
 cd forge
 
 # Install in development mode

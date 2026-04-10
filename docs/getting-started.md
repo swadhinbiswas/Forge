@@ -11,7 +11,7 @@ Build cross-platform desktop apps with Python + Web technologies in under 5 minu
 ## Installation
 
 ```bash
-pip install forge-framework
+pip install forgedesk
 ```
 
 ## Create Your First App
@@ -58,7 +58,7 @@ app.run()
 ## Call Python from JavaScript
 
 ```javascript
-import { invoke } from "@forge/api";
+import { invoke } from "@forgedesk/api";
 
 // Call any registered Python command
 const greeting = await invoke("greet", { name: "World" });

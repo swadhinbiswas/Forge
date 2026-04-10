@@ -11,7 +11,7 @@ hero:
       link: /getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/forge-framework/forge
+      link: https://github.com/swadhinbiswas/ForgeDesk
 
 features:
   - title: Bring Your Own Frontend

@@ -52,7 +52,7 @@ const result = await window.electronAPI.greet('Alice');
 **Forge:**
 ```javascript
 // Frontend
-import { invoke } from '@forge/api';
+import { invoke } from '@forgedesk/api';
 const result = await invoke('greet', { name: 'Alice' });
 ```
 
@@ -183,7 +183,7 @@ forge build --result-format json
 
 - [ ] Replace `main.js` with `src/main.py`
 - [ ] Move `ipcMain.handle()` calls to `@app.command` decorators
-- [ ] Replace `require('electron')` APIs with `@forge/api` imports
+- [ ] Replace `require('electron')` APIs with `@forgedesk/api` imports
 - [ ] Create `forge.toml` with your window and permission config
 - [ ] Enable only the permissions you actually use
 - [ ] Replace `electron-store` with `app.state.manage()`

@@ -2556,7 +2556,7 @@ def serve_app(
         import uvicorn  # noqa: F401
     except ImportError:
         _print_note("uvicorn is required for web server mode.", level="error")
-        _print_note("Install it with: pip install forge-framework[web]", level="warning")
+        _print_note("Install it with: pip install forgedesk[web]", level="warning")
         raise typer.Exit(1)
 
     _print_note("Starting web server...", level="info")

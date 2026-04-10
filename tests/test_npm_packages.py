@@ -37,7 +37,7 @@ def test_cli_wrapper_bootstraps_python_runtime() -> None:
     assert package_json["name"] == "@forgedesk/cli"
     assert package_json["bin"]["forge"] == "./bin/forge.js"
     assert "forge_cli.main" in wrapper
-    assert "pip install forge-framework" in wrapper
+    assert "pip install forgedesk" in wrapper
 
 
 def test_create_forge_app_scaffolder_targets_create_command() -> None:

@@ -14,8 +14,8 @@ Forge officially supports and provides scaffolding for:
 
 ## Inter-Process Communication (IPC)
 
-Connecting your frontend to the Python backend requires our lightweight `@forge/api` package, which works universally across all web frameworks.
+Connecting your frontend to the Python backend requires our lightweight `@forgedesk/api` package, which works universally across all web frameworks.
 
 ```bash
-npm install @forge/api
+npm install @forgedesk/api
 ```

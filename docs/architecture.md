@@ -8,7 +8,7 @@ Forge is a "Tauri for Python" framework. It bridges web technologies (HTML/CSS/J
 ┌─────────────────────────────────────────────────────────┐
 │                    Frontend (JS/TS)                      │
 │  React / Vue / Svelte / Plain HTML+CSS+JS               │
-│  @forge/api ─── invoke("cmd", args) ─── on("event")    │
+│  @forgedesk/api ─── invoke("cmd", args) ─── on("event")    │
 ├─────────────────────────────────────────────────────────┤
 │                    IPC Bridge (Python)                    │
 │  forge/bridge.py ─── JSON messages ─── Thread pool      │
