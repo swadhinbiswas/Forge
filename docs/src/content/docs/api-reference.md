@@ -1,4 +1,6 @@
-# Forge API Reference
+---
+title: "Forge API Reference"
+---
 
 Complete catalog of all built-in APIs, their methods, and required capabilities.
 

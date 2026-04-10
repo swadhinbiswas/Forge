@@ -1,0 +1,36 @@
+---
+title: Welcome to ForgeDesk
+description: Python framework for cross-platform apps
+template: splash
+hero:
+  tagline: Forge the future. Ship with Python.
+  image:
+    file: ../../assets/houston.webp
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/swadhinbiswas/ForgeDesk
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Next generation Python Desktop Apps
+
+<CardGrid stagger>
+	<Card title="Bring Your Own Frontend" icon="star">
+		Works with React, Vue, Svelte, Astro, Angular, Qwik, and SolidJS seamlessly.
+	</Card>
+	<Card title="Python Backend" icon="rocket">
+		Harness the power of Python, including native libraries and machine learning right on your users' device.
+</Card>
+<Card title="Tauri-Like Architecture" icon="laptop">
+Minimal memory footprint and native performance using system WebViews without bundling Chromium.
+</Card>
+<Card title="Secure by Design" icon="setting">
+"Deny-by-Default" capability management explicitly restricts file system and native OS access.
+</Card>
+</CardGrid>

@@ -1,4 +1,6 @@
-# Migrating from Electron to Forge
+---
+title: "Migrating from Electron to Forge"
+---
 
 A practical comparison guide for teams moving from Electron to Forge.
 

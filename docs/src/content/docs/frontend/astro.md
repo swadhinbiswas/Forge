@@ -1,4 +1,6 @@
-# Astro with Forge
+---
+title: "Astro with Forge"
+---
 
 Astro is highly recommended for building Forge applications due to its lightweight nature and Zero-JS by default approach. To use Astro with Forge:
 

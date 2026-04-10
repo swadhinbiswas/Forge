@@ -1,4 +1,6 @@
-# The Power of the Python Backend
+---
+title: "The Power of the Python Backend"
+---
 
 While Forge relies on modern web frameworks (like Astro or React) to render beautiful user interfaces, **its true unfair advantage is the Python runtime**.
 

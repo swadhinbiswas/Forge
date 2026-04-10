@@ -1,4 +1,6 @@
-# Forge Architecture
+---
+title: "Forge Architecture"
+---
 
 Forge is a "Tauri for Python" framework. It bridges web technologies (HTML/CSS/JS) with a high-performance Rust native core and a Python 3.14+ (NoGIL) backend to create secure, lightweight desktop applications.
 
@@ -38,4 +40,4 @@ Because Forge uses **Python 3.14+ Free-Threading**, it removes the typical async
 ## 3. IPC Bridge (Strict Type Validation)
 Commands traverse from JS to Python through a tightly guarded bridge:
 - Signatures derived via Python 3.14 type hints (`typing.get_type_hints`) instantly synthesize into exact **Pydantic schemas**.
-- Unexpected kwargs, un-allowed execution scopes, or spoofed commands are rejected *before* Python evaluates the core function payload. 
+- Unexpected kwargs, un-allowed execution scopes, or spoofed commands are rejected *before* Python evaluates the core function payload.

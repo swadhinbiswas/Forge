@@ -1,4 +1,6 @@
-# Forge Plugin Guide
+---
+title: "Forge Plugin Guide"
+---
 
 Write, distribute, and install Forge plugins.
 

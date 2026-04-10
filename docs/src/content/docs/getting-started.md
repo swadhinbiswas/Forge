@@ -1,4 +1,6 @@
-# Getting Started with Forge
+---
+title: "Getting Started with Forge"
+---
 
 Build cross-platform desktop apps with Python + Web technologies in under 5 minutes.
 

@@ -1,4 +1,6 @@
-# Forge Security Architecture
+---
+title: "Forge Security Architecture"
+---
 
 Forge implements a "Deny-by-Default" security boundary similar to Tauri, utilizing explicit capability scopes, strict IPC validation, and native OS codesigning standards to prevent remote execution and privilege escalation attacks.
 

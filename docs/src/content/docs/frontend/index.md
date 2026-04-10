@@ -1,4 +1,6 @@
-# Frontend Connectors
+---
+title: "Frontend Connectors"
+---
 
 Forge is frontend-agnostic, much like Tauri or Electron. The Forge architecture expects a separated Python backend and an HTML/JS/CSS frontend. During the build process, the frontend is compiled to static files and served by the Forge Rust core securely.
 
