@@ -3724,18 +3724,39 @@ def _inject_dev_server_defaults(config_path: Path) -> None:
 
 def _setup_python_env(project_dir: Path) -> None:
     venv_dir = project_dir / ".venv"
-    _print_note("Creating Python virtual environment...", level="ok")
-    
-    try:
-        venv.create(venv_dir, with_pip=True)
-    except Exception as e:
-        _print_note(f"Failed to create virtual environment: {e}", level="error")
-        return
+    _print_note("Preparing Python environment (uv-first)...", level="ok")
 
-    if sys.platform == "win32":
-        pip_exe = venv_dir / "Scripts" / "pip.exe"
+    def _ensure_uv() -> str | None:
+        direct = shutil.which("uv")
+        if direct:
+            return direct
+        try:
+            subprocess.run([sys.executable, "-m", "pip", "install", "--user", "uv"], check=True)
+        except Exception:
+            return None
+        return shutil.which("uv")
+
+    uv_path = _ensure_uv()
+    python_exe = venv_dir / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+
+    if uv_path:
+        try:
+            subprocess.run([uv_path, "venv", str(venv_dir)], check=True)
+            _print_note("Created .venv using uv", level="ok")
+        except subprocess.CalledProcessError as exc:
+            _print_note(f"uv venv failed, falling back to stdlib venv: {exc}", level="warning")
+            try:
+                venv.create(venv_dir, with_pip=True)
+            except Exception as e:
+                _print_note(f"Failed to create virtual environment: {e}", level="error")
+                return
     else:
-        pip_exe = venv_dir / "bin" / "pip"
+        _print_note("uv not found; falling back to stdlib venv", level="warning")
+        try:
+            venv.create(venv_dir, with_pip=True)
+        except Exception as e:
+            _print_note(f"Failed to create virtual environment: {e}", level="error")
+            return
 
     _print_note("Installing Python dependencies...", level="ok")
     
@@ -3753,7 +3774,10 @@ def _setup_python_env(project_dir: Path) -> None:
         deps.append("forge-framework")
     
     try:
-        subprocess.run([str(pip_exe), "install", *deps], check=True)
+        if uv_path:
+            subprocess.run([uv_path, "pip", "install", "--python", str(python_exe), *deps], check=True)
+        else:
+            subprocess.run([str(python_exe), "-m", "pip", "install", *deps], check=True)
         _print_note("Python environment configured successfully", level="ok")
     except subprocess.CalledProcessError as e:
         _print_note(f"Failed to install dependencies: {e}", level="warning")

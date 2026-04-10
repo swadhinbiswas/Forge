@@ -1,17 +1,48 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import os from "node:os";
+import path from "node:path";
 
 function pythonLaunchers() {
-  if (process.platform === "win32") {
-    return [
-      { command: "py", args: ["-3"] },
-      { command: "python", args: [] },
-    ];
+  const launchers = [];
+  const seen = new Set();
+
+  function addLauncher(command, args = []) {
+    const key = `${command}::${args.join(" ")}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      launchers.push({ command, args });
+    }
   }
-  return [
-    { command: process.env.FORGE_PYTHON || "python3", args: [] },
-    { command: "python", args: [] },
-  ];
+
+  const explicit = process.env.FORGE_PYTHON;
+  if (explicit) {
+    addLauncher(explicit, []);
+  }
+
+  const virtualEnv = process.env.VIRTUAL_ENV;
+  if (virtualEnv) {
+    if (process.platform === "win32") {
+      addLauncher(path.join(virtualEnv, "Scripts", "python.exe"), []);
+    } else {
+      addLauncher(path.join(virtualEnv, "bin", "python"), []);
+    }
+  }
+
+  const localVenv = process.platform === "win32"
+    ? path.join(process.cwd(), ".venv", "Scripts", "python.exe")
+    : path.join(process.cwd(), ".venv", "bin", "python");
+  addLauncher(localVenv, []);
+
+  if (process.platform === "win32") {
+    addLauncher("py", ["-3"]);
+    addLauncher("python", []);
+    return launchers;
+  }
+
+  addLauncher("python3", []);
+  addLauncher("python", []);
+  return launchers;
 }
 
 function run(command, args) {
@@ -33,14 +64,38 @@ function ensurePythonForge() {
     return null;
   }
 
+  const runtimeRoot = path.join(os.homedir(), ".cache", "forgedesk", "python-runtime");
+  const runtimePython = process.platform === "win32"
+    ? path.join(runtimeRoot, "Scripts", "python.exe")
+    : path.join(runtimeRoot, "bin", "python");
+
   for (const launcher of pythonLaunchers()) {
+    const createVenv = spawnSync(launcher.command, [...launcher.args, "-m", "venv", runtimeRoot], {
+      stdio: "inherit",
+    });
+    if (createVenv.status !== 0) {
+      continue;
+    }
+
+    const uvInstall = spawnSync(runtimePython, ["-m", "pip", "install", "uv"], { stdio: "ignore" });
+    if (uvInstall.status === 0) {
+      const uvInstallForge = spawnSync(
+        runtimePython,
+        ["-m", "uv", "pip", "install", "--python", runtimePython, "forge-framework"],
+        { stdio: "inherit" },
+      );
+      if (uvInstallForge.status === 0) {
+        return { command: runtimePython, args: [] };
+      }
+    }
+
     const install = spawnSync(
-      launcher.command,
-      [...launcher.args, "-m", "pip", "install", "forge-framework"],
+      runtimePython,
+      ["-m", "pip", "install", "forge-framework"],
       { stdio: "inherit" },
     );
     if (install.status === 0) {
-      return launcher;
+      return { command: runtimePython, args: [] };
     }
   }
   return null;
