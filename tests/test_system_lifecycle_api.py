@@ -25,10 +25,10 @@ class TestSystemAPI:
 
     def test_get_info(self):
         from forge.api.system import SystemAPI
-        api = SystemAPI(app_name="TestApp", app_version="2.0.0")
+        api = SystemAPI(app_name="TestApp", app_version="3.0.0")
         info = api.get_info()
         assert info["app_name"] == "TestApp"
-        assert info["app_version"] == "2.0.0"
+        assert info["app_version"] == "3.0.0"
         assert "os" in info
         assert "python_version" in info
         assert "architecture" in info

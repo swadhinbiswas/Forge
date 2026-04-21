@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#A18CFF"/><stop offset="100%" stop-color="#0EB5A4"/></linearGradient>
+  </defs>
+  <!-- Shield shape -->
+  <path d="M50 15 L20 25 V45 C20 65 50 85 50 85 C50 85 80 65 80 45 V25 Z" fill="none" stroke="url(#grad4)" stroke-width="4"/>
+  <!-- Scanner line -->
+  <path d="M25 45 L75 45" stroke="#34E6D3" stroke-width="3" filter="blur(2px)">
+    <animate attributeName="d" values="M25 25 L75 25; M25 75 L75 75; M25 25 L75 25" dur="3s" repeatCount="indefinite"/>
+  </path>
+</svg>

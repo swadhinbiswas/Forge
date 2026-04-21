@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#34E6D3"/><stop offset="100%" stop-color="#7A5CFF"/></linearGradient>
+  </defs>
+  <!-- Python nodes pulsing -->
+  <g transform="translate(50, 50)">
+    <animateTransform attributeName="transform" type="scale" values="0.9;1.1;0.9" dur="3s" repeatCount="indefinite"/>
+    <rect x="-30" y="-30" width="35" height="35" rx="8" fill="url(#grad2)"/>
+    <rect x="-5" y="-5" width="35" height="35" rx="8" fill="#5530E5" opacity="0.9"/>
+    
+    <circle cx="-12" cy="-12" r="5" fill="#fff"/>
+    <circle cx="12" cy="12" r="5" fill="#34E6D3"/>
+  </g>
+</svg>

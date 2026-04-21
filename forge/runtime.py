@@ -70,6 +70,8 @@ class RuntimeAPI:
 
     def open_devtools(self) -> None:
         """Open native webview devtools when supported by the platform."""
+        if not self._app.devtools_enabled():
+            raise PermissionError("Devtools are disabled for this runtime profile.")
         self._update_state(devtools_open=True)
         self._require_proxy().open_devtools()
         self._app._log_runtime_event("runtime_open_devtools")
@@ -82,6 +84,8 @@ class RuntimeAPI:
 
     def toggle_devtools(self) -> bool:
         """Toggle the cached devtools state and apply it to the runtime."""
+        if not self._app.devtools_enabled():
+            raise PermissionError("Devtools are disabled for this runtime profile.")
         if self._state.get("devtools_open"):
             self.close_devtools()
         else:
@@ -155,6 +159,7 @@ class RuntimeAPI:
             },
             "permissions": {
                 "filesystem": config.permissions.filesystem,
+                "tasks": config.permissions.tasks,
                 "clipboard": config.permissions.clipboard,
                 "dialogs": config.permissions.dialogs,
                 "notifications": config.permissions.notifications,
@@ -173,6 +178,7 @@ class RuntimeAPI:
             "security": {
                 "allowed_commands": list(config.security.allowed_commands),
                 "denied_commands": list(config.security.denied_commands),
+                "allow_devtools": config.security.allow_devtools,
                 "expose_command_introspection": bool(config.security.expose_command_introspection),
                 "allowed_origins": self._app.allowed_origins(),
                 "window_scopes": {
@@ -240,6 +246,7 @@ class RuntimeAPI:
             "protocol": self.protocol(),
             "permissions": {
                 "filesystem": bool(config.permissions.filesystem),
+                "tasks": bool(config.permissions.tasks),
                 "clipboard": bool(config.permissions.clipboard),
                 "dialogs": bool(config.permissions.dialogs),
                 "notifications": bool(config.permissions.notifications),
@@ -258,6 +265,7 @@ class RuntimeAPI:
             "security": {
                 "allowed_commands": list(config.security.allowed_commands),
                 "denied_commands": list(config.security.denied_commands),
+                "allow_devtools": config.security.allow_devtools,
                 "expose_command_introspection": bool(config.security.expose_command_introspection),
                 "allowed_origins": self._app.allowed_origins(),
                 "window_scopes": {

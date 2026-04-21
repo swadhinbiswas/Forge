@@ -1,0 +1,212 @@
+:root {
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --self-msg: #3b82f6;
+  --sys-msg: #94a3b8;
+}
+
+body.theme-dark {
+  --bg: #0f172a;
+  --text: #f8fafc;
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --self-msg: #6366f1;
+  --sys-msg: #475569;
+}
+
+body.theme-cyberpunk {
+  --bg: #09090b;
+  --text: #00ffcc;
+  --glass-bg: rgba(10, 10, 10, 0.8);
+  --glass-border: #ff00ff;
+  --primary: #ff00ff;
+  --primary-hover: #ff00ff;
+  --self-msg: #00ffcc;
+  --sys-msg: #ff00ff;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* App Layout */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  padding: 1rem;
+  box-sizing: border-box;
+  gap: 1rem;
+}
+
+[class*="glass-panel"] {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+aside {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  gap: 1rem;
+}
+
+aside h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.online, .offline {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.online { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
+.offline { background-color: #ef4444; }
+
+button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+button:hover { background: var(--primary-hover); transform: translateY(-1px); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+button.secondary { background: transparent; border: 1px solid var(--primary); color: var(--text); }
+button.secondary:hover { background: rgba(100,100,100,0.1); }
+
+/* Chat Main */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.msg-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+}
+
+.msg {
+  display: flex;
+  width: 100%;
+}
+
+.msg.self { justify-content: flex-end; }
+.msg.remote { justify-content: flex-start; }
+.msg.system { justify-content: center; }
+
+.msg-bubble {
+  max-width: 70%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  line-height: 1.4;
+}
+
+.msg.self .msg-bubble {
+  background: var(--self-msg);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.msg.remote .msg-bubble {
+  background: rgba(100, 100, 100, 0.1);
+  border: 1px solid var(--glass-border);
+  border-bottom-left-radius: 2px;
+}
+
+.msg.system .msg-bubble {
+  background: transparent;
+  color: var(--sys-msg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0;
+}
+
+.chat-input-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-family: inherit;
+  outline: none;
+}
+input:focus { border-color: var(--primary); }
+
+/* Settings View */
+.settings-container {
+  padding: 2rem;
+  height: 100vh;
+  box-sizing: border-box;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+select {
+  padding: 0.5rem;
+  border-radius: 4px;
+  background: var(--glass-bg);
+  color: var(--text);
+  border: 1px solid var(--glass-border);
+}
+
+.downloads { margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+.dl-item { font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.progress-bar { width: 100%; height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--primary); transition: width 0.1s linear; }

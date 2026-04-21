@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 650" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+
+    <!-- Layer Gradients -->
+    <linearGradient id="layer-frontend" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.2" />
+    </linearGradient>
+    <linearGradient id="layer-ipc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.2" />
+    </linearGradient>
+    <linearGradient id="layer-runtime" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.2" />
+    </linearGradient>
+    <linearGradient id="layer-rust" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.2" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Animations -->
+    <style>
+      .packet { animation: movePacket 3s linear infinite; }
+      .packet-reverse { animation: movePacketReverse 3s linear infinite; }
+      .pulsing-border { animation: pulseBorder 4s ease-in-out infinite; }
+      
+      @keyframes movePacket {
+        0% { stroke-dashoffset: 200; }
+        100% { stroke-dashoffset: 0; }
+      }
+      @keyframes movePacketReverse {
+        0% { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 200; }
+      }
+      @keyframes pulseBorder {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+      }
+      .title { font-family: system-ui, -apple-system, sans-serif; font-weight: 700; fill: #f8fafc; font-size: 20px; }
+      .subtitle { font-family: system-ui, -apple-system, sans-serif; font-weight: 500; fill: #cbd5e1; font-size: 14px; }
+      .desc { font-family: monospace; font-size: 12px; fill: #94a3b8; }
+      .code { font-family: monospace; font-size: 13px; fill: #38bdf8; }
+    </style>
+  </defs>
+
+  <!-- Base Background -->
+  <rect width="100%" height="100%" fill="url(#bg-grad)" rx="16" />
+
+  <!-- Connecting Lines -->
+  <g stroke="#334155" stroke-width="3" fill="none">
+    <path d="M 250 140 L 250 210" />
+    <path d="M 550 140 L 550 210" />
+    
+    <path d="M 250 290 L 250 360" />
+    <path d="M 550 290 L 550 360" />
+    
+    <path d="M 400 440 L 400 510" />
+  </g>
+
+  <!-- Animated Packets -->
+  <g stroke="#38bdf8" stroke-width="4" stroke-dasharray="10 10 10 170" fill="none" filter="url(#glow)">
+    <!-- Frontend <-> IPC -->
+    <path d="M 250 140 L 250 210" class="packet" />
+    <path d="M 550 210 L 550 140" class="packet-reverse" stroke="#a78bfa" />
+    
+    <!-- IPC <-> Runtime -->
+    <path d="M 250 290 L 250 360" class="packet" stroke="#34d399" />
+    <path d="M 550 360 L 550 290" class="packet-reverse" stroke="#fbbf24" />
+    
+    <!-- Runtime <-> Rust Core -->
+    <path d="M 400 440 L 400 510" class="packet" stroke="#fb923c" />
+    <path d="M 400 510 L 400 440" class="packet-reverse" stroke="#ef4444" />
+  </g>
+
+  <!-- Layer 1: Frontend -->
+  <g transform="translate(100, 40)">
+    <rect width="600" height="100" rx="8" fill="url(#layer-frontend)" stroke="#3b82f6" stroke-width="2" class="pulsing-border" />
+    <text x="300" y="35" text-anchor="middle" class="title">Frontend (JS/TS)</text>
+    <text x="300" y="60" text-anchor="middle" class="subtitle">React / Vue / Svelte / Plain HTML+CSS+JS</text>
+    <text x="300" y="85" text-anchor="middle" class="code">@forgedesk/api ─── invoke("cmd", args) ─── on("event")</text>
+  </g>
+
+  <!-- Layer 2: IPC Bridge -->
+  <g transform="translate(100, 190)">
+    <rect width="600" height="100" rx="8" fill="url(#layer-ipc)" stroke="#10b981" stroke-width="2" class="pulsing-border" />
+    <text x="300" y="35" text-anchor="middle" class="title">IPC Bridge (Python)</text>
+    <text x="300" y="60" text-anchor="middle" class="code">forge/bridge.py ─── JSON messages ─── Thread pool</text>
+    <text x="300" y="85" text-anchor="middle" class="desc">Strict Pydantic Validation │ Scoped Capability Checks</text>
+  </g>
+
+  <!-- Layer 3: Runtime -->
+  <g transform="translate(100, 340)">
+    <rect width="600" height="100" rx="8" fill="url(#layer-runtime)" stroke="#f59e0b" stroke-width="2" class="pulsing-border" />
+    <text x="300" y="35" text-anchor="middle" class="title">Runtime (Python)</text>
+    <text x="300" y="60" text-anchor="middle" class="code">forge/app.py ─── ForgeApp ─── API modules</text>
+    <text x="300" y="85" text-anchor="middle" class="desc">State │ Events │ Plugins │ Config │ Lifecycle</text>
+  </g>
+
+  <!-- Layer 4: Native Core -->
+  <g transform="translate(100, 490)">
+    <rect width="600" height="100" rx="8" fill="url(#layer-rust)" stroke="#ef4444" stroke-width="2" class="pulsing-border" />
+    <text x="300" y="35" text-anchor="middle" class="title">Native Core (Rust)</text>
+    <text x="300" y="60" text-anchor="middle" class="code">src/native_window.rs ─── src/window/mod.rs</text>
+    <text x="300" y="85" text-anchor="middle" class="desc">Wry / Tao WebView │ Multi-Window Registry │ GUI (muda)</text>
+  </g>
+</svg>

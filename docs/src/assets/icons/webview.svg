@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="web-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+    <filter id="web-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(10, 20)" filter="url(#web-glow)">
+    <!-- OS Window Mockup -->
+    <rect x="0" y="0" width="80" height="60" rx="8" fill="none" stroke="url(#web-grad)" stroke-width="3" />
+    
+    <!-- Titlebar -->
+    <path d="M0 16 L80 16" stroke="url(#web-grad)" stroke-width="2" />
+    
+    <!-- Window buttons -->
+    <circle cx="10" cy="8" r="2.5" fill="#f43f5e" />
+    <circle cx="18" cy="8" r="2.5" fill="#f97316" />
+    <circle cx="26" cy="8" r="2.5" fill="#fbbf24" />
+
+    <!-- Animated code blocks -->
+    <rect x="10" y="25" width="40" height="4" rx="2" fill="#f97316" opacity="0.8">
+      <animate attributeName="width" values="40;60;40" dur="3s" repeatCount="indefinite" />
+    </rect>
+    <rect x="10" y="35" width="30" height="4" rx="2" fill="#f43f5e" opacity="0.6">
+      <animate attributeName="width" values="30;50;30" dur="3s" begin="1s" repeatCount="indefinite" />
+    </rect>
+    <rect x="10" y="45" width="50" height="4" rx="2" fill="#f97316" opacity="0.4">
+      <animate attributeName="width" values="50;35;50" dur="3s" begin="2s" repeatCount="indefinite" />
+    </rect>
+    
+    <!-- Scanning line effect inside window -->
+    <line x1="0" y1="20" x2="80" y2="20" stroke="#f43f5e" stroke-width="2" opacity="0.5">
+      <animate attributeName="y1" values="20;58;20" dur="4s" repeatCount="indefinite" />
+      <animate attributeName="y2" values="20;58;20" dur="4s" repeatCount="indefinite" />
+    </line>
+  </g>
+</svg>

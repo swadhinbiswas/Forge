@@ -30,6 +30,8 @@ class SystemAPI:
     controlling the application lifecycle. No external dependencies.
     """
 
+    __forge_capability__ = "system"
+
     def __init__(
         self,
         app_name: str = "Forge App",

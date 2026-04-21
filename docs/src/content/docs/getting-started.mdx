@@ -1,0 +1,142 @@
+---
+title: "Getting Started with Forge"
+description: "Start building powerful, lightweight Python desktop applications."
+---
+
+import { FileTree } from '@astrojs/starlight/components';
+
+Build cross-platform desktop applications using Python for the backend and modern Web technologies (React, Vue, Svelte, or vanilla JS) for the frontend—in under 5 minutes.
+
+Forge provides a secure, zero-copy architecture that combines the ergonomics of Python with the native performance of Rust. It's designed specifically for developers who want to escape the bulk of Electron while leveraging the vast Python ecosystem.
+
+## Prerequisites
+
+Before starting, ensure you have the following installed:
+
+- **Python 3.10+** (Python 3.14+ is recommended to fully utilize NoGIL performance)
+- **Rust toolchain** (Required for compiling the native WebView core)
+- **Node.js 18+** (Optional but recommended, for frontend package management and dev servers)
+
+## Installation
+
+Install the Forge CLI via `pip`. It is recommended to do this globally or within an active virtual environment using `uv` for speed:
+
+```bash
+# Using standard pip
+pip install forgedesk
+
+# Using uv (Recommended for speed)
+uv pip install forgedesk
+```
+
+## Create Your First App
+
+We provide a robust CLI scaffolding tool to instantly generate complete project structures tailored to your favorite frontend framework.
+
+```bash
+forge create my-app --template react-ts
+cd my-app
+```
+
+This generates a structured directory:
+
+<FileTree>
+
+- my-app/
+  - forge.toml          # Rust/Python App capabilities and configuration
+  - src/
+    - main.py         # Python backend entrypoint
+    - frontend/       # Vite-powered React/TypeScript frontend
+      - index.html
+      - package.json
+      - src/
+        - App.tsx
+        - main.tsx
+  - src-forge/          # Auto-generated native assets
+
+</FileTree>
+
+## 1. Write the Python Backend
+
+Forge makes it incredibly simple to expose Python functions as callable frontend commands. Uses standard type hints to automatically generate TypeScript definitions.
+
+```python
+# src/main.py
+from forge import ForgeApp
+
+app = ForgeApp()
+
+@app.command
+def greet(name: str) -> str:
+    """A simple greeting command."""
+    return f"Hello from Python, {name}! 🐍"
+
+@app.command
+def calculate_heavy_load(a: int, b: int) -> int:
+    """Demonstrates passing typed data across the IPC bridge."""
+    return (a * b) + 100
+
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+## 2. Call Python from JavaScript/TypeScript
+
+On the frontend, use the `@forgedesk/api` to securely call your annotated Python backend commands.
+
+```typescript
+// src/frontend/src/App.tsx
+import { useState } from "react";
+import { invoke } from "@forgedesk/api/core";
+
+export function App() {
+  const [greeting, setGreeting] = useState<string>("");
+
+  async function handleGreet() {
+    // Call the Python `@app.command` seamlessly
+    const response = await invoke<string>("greet", { name: "Forge Developer" });
+    setGreeting(response);
+  }
+
+  return (
+    <div className="container">
+      <h1>Welcome to Forge</h1>
+      <button onClick={handleGreet}>Say Hello</button>
+      <p>{greeting}</p>
+    </div>
+  );
+}
+```
+
+## 3. Run in Development Mode
+
+Run your app during development with full Hot Module Replacement (HMR) for the frontend and automatic reloads for the Python backend.
+
+```bash
+forge dev
+```
+
+The CLI will automatically start the Vite dev server and boot the Rust/Python backend application. 
+
+**Pro Tip:** Add the `--inspect` flag to launch the app with Chrome DevTools and an active IPC inspector, tracing every payload traversing the Python `<->` JS bridge.
+
+## 4. Build for Production
+
+When you are ready to distribute your app, run the build command.
+
+```bash
+forge build
+```
+
+Forge compiles a highly optimized, standalone native binary. 
+It bundles your Python interpreter (via PyInstaller or Nuitka) and the optimized JS assets into a single executable that users can launch without needing Python installed on their system.
+
+## Next Steps
+
+You now have a fully functional Forge app. Explore the deeper capabilities of the framework:
+
+- **[Architecture & Zero-Copy](/architecture/)** — Learn how Forge achieves massive throughput via shared memory and `forge-memory://`.
+- **[Complete API Reference](/api-complete-reference/)** — Explore OS integration, Hardware Serial, App Lifecycle, Keychains, and more.
+- **[Deployment & Security](/deployment-security/)** — Understand Forge's strict IPC scope modeling, Content Security Policies, and capability scoping.
+- **[Frontend Integration](/frontend-integration/)** — Deep dive into using Vue, Svelte, Angular, or Vanilla JS.
+

@@ -46,7 +46,7 @@ def test_verify_release_payload_validates_package_and_release_manifests(tmp_path
         "format_version": 1,
         "target": "desktop",
         "builder": "maturin",
-        "app": {"name": "Forge", "version": "2.0.0", "product_name": "Forge", "app_id": "dev.forge.app"},
+        "app": {"name": "Forge", "version": "3.0.0", "product_name": "Forge", "app_id": "dev.forge.app"},
         "protocol": {"schemes": []},
         "packaging": {"formats": ["dir"], "category": "Utility"},
         "signing": {"enabled": False, "adapter": None, "identity": None, "notarize": False, "timestamp_url": None},
@@ -58,18 +58,16 @@ def test_verify_release_payload_validates_package_and_release_manifests(tmp_path
 
     release_manifest = {
         "format_version": 1,
-        "forge_version": "2.0.0",
+        "forge_version": "3.0.0",
         "generated_at": "2026-03-30T00:00:00+00:00",
         "target": "desktop",
-        "app": {"name": "Forge", "version": "2.0.0", "app_id": "dev.forge.app", "product_name": "Forge"},
+        "app": {"name": "Forge", "version": "3.0.0", "app_id": "dev.forge.app", "product_name": "Forge"},
         "protocol": {"schemes": []},
         "packaging": {"manifest_path": str(package_manifest_file)},
         "signing": {"enabled": False},
         "notarization": {"status": "skipped"},
-            "provenance": {"workspace_root": str(workspace), "source_commit": "abc123"},
-            "version_alignment": {"aligned": True},
-            "provenance": {"workspace_root": str(workspace), "source_commit": "abc123"},
-            "version_alignment": {"aligned": True},
+        "provenance": {"workspace_root": str(workspace), "source_commit": "abc123"},
+        "version_alignment": {"aligned": True},
         "artifacts": [
             {"path": str(app_bin), "sha256": _sha256(app_bin), "size": app_bin.stat().st_size},
             {"path": str(helper_bin), "sha256": _sha256(helper_bin), "size": helper_bin.stat().st_size},
@@ -80,7 +78,7 @@ def test_verify_release_payload_validates_package_and_release_manifests(tmp_path
     release_manifest_file.write_text(json.dumps(release_manifest, indent=2, sort_keys=True), encoding="utf-8")
 
     payload = {
-        "forge_version": "2.0.0",
+        "forge_version": "3.0.0",
         "ok": True,
         "target": "desktop",
         "project_dir": str(workspace),
@@ -122,19 +120,19 @@ def test_release_manifest_payload_uses_project_directory_for_alignment(tmp_path:
         "\n".join(
             [
                 "[project]",
-                'version = "2.0.0"',
+                'version = "3.0.0"',
             ]
         ),
         encoding="utf-8",
     )
     (workspace / "package.json").write_text(
-        json.dumps({"version": "2.0.0"}, indent=2),
+        json.dumps({"version": "3.0.0"}, indent=2),
         encoding="utf-8",
     )
     packages_dir = workspace / "packages" / "api"
     packages_dir.mkdir(parents=True)
     (packages_dir / "package.json").write_text(
-        json.dumps({"name": "@forgedesk/api", "version": "2.0.0"}, indent=2),
+        json.dumps({"name": "@forgedesk/api", "version": "3.0.0"}, indent=2),
         encoding="utf-8",
     )
 
@@ -148,11 +146,10 @@ def test_release_manifest_payload_uses_project_directory_for_alignment(tmp_path:
     )
 
     config = SimpleNamespace(
-        app=SimpleNamespace(name="Forge", version="2.0.0"),
+        app=SimpleNamespace(name="Forge", version="3.0.0"),
         packaging=SimpleNamespace(app_id="dev.forge.app", product_name="Forge"),
         protocol=SimpleNamespace(schemes=[]),
     )
     build_result = {"artifacts": [str(artifact)], "package": {"manifest_path": str(project_dir / "forge-package.json")}, "signing": {}, "notarization": {}}
 
     payload = _release_manifest_payload(config, "desktop", build_result, project_dir=workspace)
-

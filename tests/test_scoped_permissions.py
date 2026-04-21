@@ -272,7 +272,7 @@ class TestShellAPIDenyAndURLScopes:
             execute=["ls", "rm", "cat"],
             deny_execute=["rm"],
         )
-        api = ShellAPI(base_dir=Path("/tmp"), permissions=perms)
+        api = ShellAPI(app=None, base_dir=Path("/tmp"), permissions=perms)
 
         assert api._is_allowed("ls")
         assert api._is_allowed("cat")
@@ -286,7 +286,7 @@ class TestShellAPIDenyAndURLScopes:
             execute=["ls", "cat"],
             deny_execute=[],
         )
-        api = ShellAPI(base_dir=Path("/tmp"), permissions=perms)
+        api = ShellAPI(app=None, base_dir=Path("/tmp"), permissions=perms)
         assert api._is_allowed("ls")
         assert api._is_allowed("cat")
 
@@ -299,7 +299,7 @@ class TestShellAPIDenyAndURLScopes:
             allow_urls=["https://*.example.com/*"],
             deny_urls=["https://internal.example.com/*"],
         )
-        api = ShellAPI(base_dir=Path("/tmp"), permissions=perms)
+        api = ShellAPI(app=None, base_dir=Path("/tmp"), permissions=perms)
 
         # Allowed domain
         assert api._url_scope.is_url_allowed("https://api.example.com/v1")
@@ -311,7 +311,7 @@ class TestShellAPIDenyAndURLScopes:
         from forge.api.shell import ShellAPI
 
         perms = ShellPermissions(execute=[])
-        api = ShellAPI(base_dir=Path("/tmp"), permissions=perms)
+        api = ShellAPI(app=None, base_dir=Path("/tmp"), permissions=perms)
         assert api._url_scope.is_url_allowed("https://anything.com")
 
     def test_open_denied_url_raises(self):
@@ -323,7 +323,7 @@ class TestShellAPIDenyAndURLScopes:
             allow_urls=["https://safe.com/*"],
             deny_urls=["https://evil.com/*"],
         )
-        api = ShellAPI(base_dir=Path("/tmp"), permissions=perms)
+        api = ShellAPI(app=None, base_dir=Path("/tmp"), permissions=perms)
 
         with pytest.raises(PermissionError, match="not allowed"):
             api.open("https://evil.com/payload")

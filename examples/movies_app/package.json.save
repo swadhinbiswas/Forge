@@ -1,0 +1,28 @@
+ sed -i 's/"dev": "vite"/"dev": "vite --port 5192"/g' /home/swadhin/Forge/forge-framework/examples/movies_app/package.json
+ cat /home/swadhin/Forge/forge-framework/examples/movies_app/package.json
+ sed -i 's/5199/5192/g' /home/swadhin/Forge/forge-framework/examples/movies_app/forge.toml
+ cat /home/swadhin/Forge/forge-framework/examples/movies_app/forge.toml
+{
+  "dependencies": {
+    "@forgedesk/api": "^2.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^6.30.3"
+  },
+  "devDependencies": {
+    "@forgedesk/vite-plugin": "^2.0.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "vite": "^6.2.0"
+  },
+  "name": "examples-movies-app",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "forge:build": "forge build",
+    "forge:dev": "forge dev",
+    "preview": "vite preview"
+  },
+  "type": "module",
+  "version": "1.0.0"
+}

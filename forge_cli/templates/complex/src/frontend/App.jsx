@@ -3,89 +3,115 @@ import forge, { invoke } from '@forgedesk/api'
 import './App.css'
 
 function App() {
-  const [name, setName] = useState('Developer')
+  const [name, setName] = useState('')
   const [greeting, setGreeting] = useState('')
   const [systemInfo, setSystemInfo] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [loadingGreet, setLoadingGreet] = useState(false)
+  const [loadingInfo, setLoadingInfo] = useState(false)
+  const [errorGreet, setErrorGreet] = useState(null)
+  const [errorInfo, setErrorInfo] = useState(null)
 
-  // Call Python greet command
   const handleGreet = async () => {
-    setLoading(true)
-    setError(null)
+    setLoadingGreet(true)
+    setErrorGreet(null)
+    setGreeting('')
     try {
-      const result = await invoke('greet', { name })
+      const result = await invoke('greet', { name: name || 'Developer' })
       setGreeting(result)
-      
-      // Copy to clipboard
-      await forge.clipboard.write(result)
+      try { await forge.clipboard.write(result); } catch(e) {}
     } catch (err) {
-      setError(err.message)
+      setErrorGreet(err.message || String(err))
     } finally {
-      setLoading(false)
+      setLoadingGreet(false)
     }
   }
 
-  // Call Python get_system_info command
   const handleGetInfo = async () => {
-    setLoading(true)
-    setError(null)
+    setLoadingInfo(true)
+    setErrorInfo(null)
+    setSystemInfo(null)
     try {
       const info = await invoke('get_system_info')
       setSystemInfo(info)
     } catch (err) {
-      setError(err.message)
+      setErrorInfo(err.message || String(err))
     } finally {
-      setLoading(false)
+      setLoadingInfo(false)
     }
   }
 
   return (
-    <div className="app">
-      <header className="header">
-        <h1>⚡ {{PROJECT_NAME}}</h1>
-        <p className="tagline">Built with Forge + React</p>
-      </header>
+    <>
+      <div id="noise"></div>
+      <div className="glow-bg"></div>
 
-      <main className="main">
-        <section className="card">
-          <h2>Greeting</h2>
-          <div className="input-group">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
-            />
-            <button onClick={handleGreet} disabled={loading}>
-              {loading ? '...' : 'Greet'}
-            </button>
+      <div className="container">
+        <header>
+          <div className="logo-container">
+            <div className="logo">⚡</div>
           </div>
-          {greeting && <p className="result success">{greeting}</p>}
-        </section>
+          <h1>{{PROJECT_NAME}}</h1>
+          <p className="tagline">Welcome to the future of Desktop Apps mapped with Python.</p>
+        </header>
 
-        <section className="card">
-          <h2>System Info</h2>
-          <button onClick={handleGetInfo} disabled={loading}>
-            {loading ? 'Loading...' : 'Get Info'}
-          </button>
-          {systemInfo && (
-            <pre className="result">{JSON.stringify(systemInfo, null, 2)}</pre>
-          )}
-        </section>
-
-        {error && (
-          <section className="card error">
-            <h2>Error</h2>
-            <p className="result error">{error}</p>
+        <main>
+          <section className="card glass">
+            <div className="card-header">
+              <div className="dot-group">
+                <span className="dot red"></span>
+                <span className="dot yellow"></span>
+                <span className="dot green"></span>
+              </div>
+              <h2>Command Execution (Complex Demo)</h2>
+            </div>
+            <div className="card-body">
+              <p className="desc">Enter a name to call the <code>greet</code> python command via IPC.</p>
+              <div className="input-group">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your name..."
+                  autoComplete="off"
+                />
+                <button onClick={handleGreet} disabled={loadingGreet}>
+                  {loadingGreet ? 'Running...' : 'Run'}
+                </button>
+              </div>
+              {greeting && <div className="output-box success show">{greeting}</div>}
+              {errorGreet && <div className="output-box error show">{errorGreet}</div>}
+            </div>
           </section>
-        )}
-      </main>
 
-      <footer className="footer">
-        <p>Forge Framework v1.0.0</p>
-      </footer>
-    </div>
+          <section className="card glass">
+            <div className="card-header">
+              <div className="dot-group">
+                <span className="dot red"></span>
+                <span className="dot yellow"></span>
+                <span className="dot green"></span>
+              </div>
+              <h2>System Telemetry & Events</h2>
+            </div>
+            <div className="card-body">
+              <p className="desc">Fetching live diagnostics seamlessly from Python.</p>
+              <button className="secondary-btn" onClick={handleGetInfo} disabled={loadingInfo}>
+                {loadingInfo ? 'Fetching...' : 'Fetch System Info'}
+              </button>
+              {systemInfo && (
+                <div className="output-box info show">
+                  {JSON.stringify(systemInfo, null, 2)}
+                </div>
+              )}
+              {errorInfo && <div className="output-box error show">{errorInfo}</div>}
+            </div>
+          </section>
+        </main>
+
+        <footer>
+          <p>Powered by <strong>Forge Framework</strong> • <em>Complex App Template</em></p>
+        </footer>
+      </div>
+    </>
   )
 }
 

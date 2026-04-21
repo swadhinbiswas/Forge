@@ -23,6 +23,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
+from .manifests import PlistBuilder, WixBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,8 @@ class BundleConfig:
     frontend_dir: Path
     output_dir: Path
     project_dir: Path
-    target: str = "desktop"  # "desktop" | "web"
+    target: str = "desktop"
+    version: str = "1.0.0.0"  # "desktop" | "web"
 
     # Builder selection
     builder: str = "nuitka"  # "nuitka" | "maturin"
@@ -91,13 +93,16 @@ def detect_build_tool(project_dir: Path) -> dict[str, Any]:
 
     Priority:
         1. maturin (if Cargo.toml exists and maturin is installed)
-        2. Nuitka (Python-only compilation)
+        2. pyoxidizer (if pyoxidizer.bzl exists and pyoxidizer is installed)
+        3. Nuitka (Python-only compilation)
 
     Returns:
         Dict with 'name', 'mode', 'available', and 'path' keys.
     """
     cargo_toml = project_dir / "Cargo.toml"
+    pyox_bzl = project_dir / "pyoxidizer.bzl"
     maturin_path = shutil.which("maturin")
+    pyox_path = shutil.which("pyoxidizer")
 
     if cargo_toml.exists() and maturin_path:
         return {
@@ -105,6 +110,14 @@ def detect_build_tool(project_dir: Path) -> dict[str, Any]:
             "mode": "hybrid",
             "available": True,
             "path": maturin_path,
+        }
+
+    if pyox_bzl.exists() and pyox_path:
+        return {
+            "name": "pyoxidizer",
+            "mode": "embedded",
+            "available": True,
+            "path": pyox_path,
         }
 
     nuitka_available = _module_available("nuitka")
@@ -117,10 +130,10 @@ def detect_build_tool(project_dir: Path) -> dict[str, Any]:
         }
 
     return {
-        "name": "maturin" if cargo_toml.exists() else "nuitka",
-        "mode": "hybrid" if cargo_toml.exists() else "python",
+        "name": "maturin" if cargo_toml.exists() else ("pyoxidizer" if pyox_bzl.exists() else "nuitka"),
+        "mode": "hybrid" if cargo_toml.exists() else ("embedded" if pyox_bzl.exists() else "python"),
         "available": False,
-        "path": maturin_path,
+        "path": maturin_path if cargo_toml.exists() else (pyox_path if pyox_bzl.exists() else sys.executable),
     }
 
 
@@ -288,15 +301,47 @@ class BundlePipeline:
                 "maturin", "build", "--release",
                 "--out", str(self.config.output_dir),
             ]
+        elif self.config.builder == "pyoxidizer":
+            build_args = [
+                "pyoxidizer", "build",
+                "--path", str(self.config.project_dir),
+                "--release"
+            ]
+            # Output copying handles later, as pyoxidizer yields to a specific nested build dir
         else:
             build_args = [
                 sys.executable, "-m", "nuitka",
                 "--standalone",
+                "--remove-output",
+                "--assume-yes-for-downloads",
+                "--plugin-enable=anti-bloat",
+                "--python-flag=no_docstrings",
+                "--python-flag=no_asserts",
+                "--lto=yes",
+                "--disable-console",
+                "--noinclude-pytest-mode=nofollow",
+                "--noinclude-setuptools-mode=nofollow",
+                "--noinclude-tkinter-mode=nofollow",
+                "--noinclude-custom-mode=unittest:nofollow",
+                "--noinclude-custom-mode=doctest:nofollow",
+                "--noinclude-custom-mode=pydoc:nofollow",
+                "--noinclude-custom-mode=email:nofollow",
+                "--noinclude-custom-mode=idlelib:nofollow",
+                "--noinclude-custom-mode=lib2to3:nofollow",
                 f"--output-dir={self.config.output_dir}",
                 f"--output-filename={self.config.safe_app_name}",
             ]
+            if self.config.host_platform == "Windows":
+                 build_args.append("--windows-disable-console")
+            if self.config.host_platform == "Darwin":
+                 build_args.append("--macos-disable-console")
             if self.config.icon and self.config.icon.exists():
-                build_args.append(f"--linux-icon={self.config.icon}")
+                if self.config.host_platform == "Windows":
+                    build_args.append(f"--windows-icon-from-ico={self.config.icon}")
+                elif self.config.host_platform == "Darwin":
+                    build_args.append(f"--macos-app-icon={self.config.icon}")
+                else:
+                    build_args.append(f"--linux-icon={self.config.icon}")
             build_args.append(str(self.config.entry_point))
 
         result = subprocess.run(
@@ -315,7 +360,7 @@ class BundlePipeline:
 
     def package(self) -> dict[str, Any]:
         """Generate platform installers for configured formats.
-        
+
         Bubbles up subprocess errors cleanly without hanging.
         """
         results = []
@@ -341,7 +386,7 @@ class BundlePipeline:
         output_dir = Path(self.config.output_dir)
         app_name = self.config.app_name
         safe_name = self.config.safe_app_name
-        
+
         dist_dir = output_dir / f"{safe_name}.dist"
         if not dist_dir.exists():
             dist_dir = output_dir
@@ -354,25 +399,11 @@ class BundlePipeline:
             resources_dir = app_bundle / "Contents" / "Resources"
             macos_dir.mkdir(parents=True, exist_ok=True)
             resources_dir.mkdir(parents=True, exist_ok=True)
-            
+
             info_plist = app_bundle / "Contents" / "Info.plist"
-            info_plist.write_text(f'<?xml version="1.0" encoding="UTF-8"?>\n'
-                                  f'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n'
-                                  f'<plist version="1.0">\n'
-                                  f'<dict>\n'
-                                  f'    <key>CFBundleExecutable</key>\n'
-                                  f'    <string>{safe_name}</string>\n'
-                                  f'    <key>CFBundleIdentifier</key>\n'
-                                  f'    <string>com.forge.{safe_name}</string>\n'
-                                  f'    <key>CFBundleName</key>\n'
-                                  f'    <string>{app_name}</string>\n'
-                                  f'    <key>CFBundlePackageType</key>\n'
-                                  f'    <string>APPL</string>\n'
-                                  f'    <key>CFBundleShortVersionString</key>\n'
-                                  f'    <string>1.0</string>\n'
-                                  f'</dict>\n'
-                                  f'</plist>')
-            
+            builder = PlistBuilder(app_name=app_name, safe_name=safe_name, version=self.config.version)
+            builder.write(info_plist)
+
             if dist_dir != output_dir and dist_dir.exists():
                 for item in dist_dir.iterdir():
                     dest = macos_dir / item.name
@@ -382,33 +413,51 @@ class BundlePipeline:
                         shutil.copytree(item, dest)
                     else:
                         shutil.copy2(item, dest)
-            
+
             if fmt == "dmg":
                 dmg_path = output_dir / f"{safe_name}.dmg"
+
+                # Attempt to locally sign the .app bundle before packaging
+                try:
+                    if shutil.which("codesign"):
+                        subprocess.run(["codesign", "--force", "--deep", "--sign", "-", str(app_bundle)], check=True)
+                except Exception as e:
+                    logger.warning(f"Failed to codesign {app_bundle}: {e}")
+
+                dmg_path = output_dir / f"{safe_name}.dmg"
                 cmd = ["hdiutil", "create", "-volname", app_name, "-srcfolder", str(app_bundle), "-ov", "-format", "UDZO", str(dmg_path)]
+
             else:
                 self.artifacts.append(fmt)
                 return {"format": fmt, "status": "ok", "tool": "none"}
 
-        elif self.config.host_platform == "Windows" or fmt in ("nsis", "exe"):
-            nsi_path = output_dir / "installer.nsi"
-            nsi_path.write_text(f'OutFile "{safe_name}_installer.exe"\n'
-                                f'InstallDir "$PROGRAMFILES\\{app_name}"\n'
-                                f'Section\n'
-                                f'  SetOutPath $INSTDIR\n'
-                                f'  File /r "{dist_dir.name}\\*"\n'
-                                f'  CreateShortcut "$SMPROGRAMS\\{app_name}.lnk" "$INSTDIR\\{safe_name}.exe"\n'
-                                f'SectionEnd\n')
-            cmd = ["makensis", str(nsi_path)]
+        elif self.config.host_platform == "Windows" or fmt in ("nsis", "exe", "msi"):
+            if fmt == "msi":
+                wxs_path = output_dir / "installer.wxs"
+                builder = WixBuilder(app_name=app_name, safe_name=safe_name, dist_dir=dist_dir, version=self.config.version)
+                builder.write(wxs_path)
+                # Basic WiX invocation. In a real system you would run candle then light.
+                # Assuming modern WiX v4: `wix build`
+                cmd = ["wix", "build", "-out", str(output_dir / f"{safe_name}.msi"), str(wxs_path)]
+            else:
+                nsi_path = output_dir / "installer.nsi"
+                nsi_path.write_text(f'OutFile "{safe_name}_installer.exe"\n'
+                                    f'InstallDir "$PROGRAMFILES\\{app_name}"\n'
+                                    f'Section\n'
+                                    f'  SetOutPath $INSTDIR\n'
+                                    f'  File /r "{dist_dir.name}\\*"\n'
+                                    f'  CreateShortcut "$SMPROGRAMS\\{app_name}.lnk" "$INSTDIR\\{safe_name}.exe"\n'
+                                    f'SectionEnd\n')
+                cmd = ["makensis", str(nsi_path)]
 
         elif self.config.host_platform == "Linux" or fmt in ("appimage", "deb"):
             app_dir = output_dir / "AppDir"
             app_dir.mkdir(exist_ok=True)
-            
+
             app_run = app_dir / "AppRun"
             app_run.write_text(f'#!/bin/sh\ncd "$(dirname "$0")"\nexec ./{safe_name}')
             app_run.chmod(0o755)
-            
+
             desktop_file = app_dir / f"{safe_name}.desktop"
             desktop_file.write_text(f'[Desktop Entry]\n'
                                     f'Name={app_name}\n'
@@ -416,7 +465,7 @@ class BundlePipeline:
                                     f'Icon={safe_name}\n'
                                     f'Type=Application\n'
                                     f'Categories=Utility;\n')
-            
+
             if dist_dir != output_dir and dist_dir.exists():
                 for item in dist_dir.iterdir():
                     dest = app_dir / item.name
@@ -426,11 +475,21 @@ class BundlePipeline:
                         shutil.copytree(item, dest)
                     else:
                         shutil.copy2(item, dest)
-                    
+
             if fmt == "appimage":
                 cmd = ["appimagetool", str(app_dir)]
             elif fmt == "deb":
-                cmd = ["dpkg-deb", "--build", str(app_dir)]
+                # Create DEBIAN/control needed for dpkg-deb
+                debian_dir = app_dir / "DEBIAN"
+                debian_dir.mkdir(exist_ok=True)
+                control_file = debian_dir / "control"
+                control_file.write_text(f"Package: {safe_name}\n"
+                                        f"Version: 1.0.0\n"
+                                        f"Architecture: amd64\n"
+                                        f"Maintainer: ForgeDesk <hello@forge.dev>\n"
+                                        f"Description: {app_name}\n")
+
+                cmd = ["dpkg-deb", "--build", str(app_dir), str(output_dir / f"{safe_name}_1.0.0_amd64.deb")]
 
         else:
             return {"format": fmt, "status": "skipped", "reason": f"unsupported format {fmt}"}

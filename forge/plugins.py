@@ -96,7 +96,7 @@ class PluginManager:
     """Load, validate, and manage Forge plugins with capability enforcement."""
 
     # Current framework version for compatibility checks
-    FRAMEWORK_VERSION = "0.1.0"
+    FRAMEWORK_VERSION = "3.0.0"
 
     def __init__(self, app: Any, config: Any) -> None:
         self._app = app

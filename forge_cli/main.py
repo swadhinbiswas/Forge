@@ -66,7 +66,7 @@ app = typer.Typer(
 )
 
 # Version
-VERSION = "2.0.0"
+VERSION = "3.0.0"
 
 _STATUS_ICON = {
     "ok": "✓",
@@ -2271,9 +2271,18 @@ def create_project(
         "--author",
         help="Author name",
     ),
+    package_manager: Optional[str] = typer.Option(
+        None,
+        "-p",
+        "--package-manager",
+        help="Package manager (npm, pnpm, bun, yarn, skip)",
+    ),
+    tailwind: Optional[bool] = typer.Option(
+        None,
+        "--tailwind/--no-tailwind",
+        help="Include Tailwind CSS",
+    ),
 ) -> None:
-    if not name:
-        name = Prompt.ask("Project name", default="my-forge-app")
     """
     Create a new Forge project.
 
@@ -2281,7 +2290,15 @@ def create_project(
     """
     _print_header("Create App", "Scaffold a new Forge workspace")
 
-    valid_templates = ["plain", "react", "vue", "svelte", "complex"]
+    if not name:
+        try:
+            import questionary
+            name = questionary.text("Project name:", default="my-forge-app").ask()
+        except ImportError:
+            name = Prompt.ask("Project name", default="my-forge-app")
+        if not name: raise typer.Exit(1)
+
+    valid_templates = ["plain", "react", "vue", "svelte", "complex", "astro", "nextjs"]
 
     if template and framework and template != framework:
         _print_note("Provide either --template or --framework, or use the same value for both.", level="error")
@@ -2289,7 +2306,25 @@ def create_project(
 
     selected_template = framework or template
     if not selected_template:
-        selected_template = Prompt.ask("Choose template", choices=valid_templates, default="plain")
+        try:
+            import questionary
+            selected_template = questionary.select(
+                "Choose template:",
+                                choices=[
+                    questionary.Choice("React (Recommended, Fast + React 19)", value="react"),
+                    questionary.Choice("Next.js (React + Tailwind + Shadcn UI)", value="nextjs"),
+                    questionary.Choice("Astro (Fast Static App)", value="astro"),
+                    questionary.Choice("Complex (React + TypeScript + IPC Demo)", value="complex"),
+                    questionary.Choice("Vue (Vue 3 + Vite)", value="vue"),
+                    questionary.Choice("Svelte (Svelte 5 + Vite)", value="svelte"),
+                    questionary.Choice("Plain (Vanilla JS/HTML)", value="plain")
+                ],
+                default="react"
+            ).ask()
+        except ImportError:
+            selected_template = Prompt.ask("Choose template", choices=valid_templates, default="plain")
+            
+        if not selected_template: raise typer.Exit(1)
 
     template = selected_template.lower().strip()
     if template not in valid_templates:
@@ -2305,11 +2340,41 @@ def create_project(
         _print_note("Invalid window size format. Use WIDTHxHEIGHT, for example 1280x800.", level="error")
         raise typer.Exit(1)
 
+
     # Get author name if not provided
     if not author:
-        author = Prompt.ask(
-            "Author name", default=os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
-        )
+        default_author = os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
+        try:
+            import questionary
+            author = questionary.text("Author name:", default=default_author).ask()
+        except ImportError:
+            author = Prompt.ask("Author name", default=default_author)
+        if not author: raise typer.Exit(1)
+
+    if package_manager is None:
+        try:
+            import questionary
+            package_manager = questionary.select(
+                "Choose a package manager:",
+                choices=["npm", "pnpm", "bun", "yarn", "skip"],
+                default="npm"
+            ).ask()
+        except ImportError:
+            package_manager = Prompt.ask("Package manager", choices=["npm", "pnpm", "bun", "yarn", "skip"], default="npm")
+        if not package_manager: raise typer.Exit(1)
+
+    if tailwind is None:
+        if template in ["react", "vue", "svelte", "plain", "complex"]:
+            try:
+                import questionary
+                tailwind = questionary.confirm("Include Tailwind CSS?", default=True).ask()
+            except ImportError:
+                ans = Prompt.ask("Include Tailwind CSS? [y/N]", default="y")
+                tailwind = ans.lower().startswith('y')
+            if tailwind is None: raise typer.Exit(1)
+        else:
+            tailwind = False
+
 
     # Create project directory
     project_dir = Path.cwd() / name
@@ -2356,22 +2421,36 @@ def create_project(
             _print_note(error, level="error")
         raise typer.Exit(1)
 
+
     with console.status("[cyan]Scaffolding files...[/]"):
         _copy_template(templates_dir, project_dir, name, author, width, height)
-        _write_frontend_workspace_files(project_dir, template, name)
-        _inject_dev_server_defaults(project_dir / "forge.toml")
+        _write_frontend_workspace_files(project_dir, template, name, tailwind=tailwind)
+        _inject_dev_server_defaults(project_dir / "forge.toml", package_manager)
 
     _print_note(f"Scaffolded {name}/", level="ok")
     _print_note("Created forge.toml configuration", level="ok")
     _print_note(f"Set up {template} template", level="ok")
     _print_note(f"Template contract schema v{template_contract['schema_version']} validated", level="ok")
 
+    if tailwind:
+        _print_note("Configured Tailwind CSS + PostCSS", level="ok")
+
     # Create a simple icon placeholder
     _create_placeholder_icon(assets_dir / "icon.png")
     _print_note("Created placeholder icon", level="ok")
 
+    if package_manager != "skip":
+        with console.status(f"[cyan]Running {package_manager} install...[/]"):
+            import subprocess
+            try:
+                subprocess.run([package_manager, "install"], cwd=project_dir, check=True, capture_output=True)
+                _print_note(f"Installed Node dependencies via {package_manager}", level="ok")
+            except Exception as e:
+                _print_note(f"Failed to install dependencies: {e}", level="warning")
+
     with console.status("[cyan]Setting up Python environment...[/]"):
         _setup_python_env(project_dir)
+
 
     _print_command_result(
         "Ready to Forge",
@@ -2455,6 +2534,20 @@ def dev_mode(
     if not entry_path.exists():
         _print_note(f"Entry point not found: {entry_path}", level="error")
         raise typer.Exit(1)
+
+    _print_note("Generating TypeScript definitions...", level="info")
+    try:
+        from forge.app import ForgeApp
+        from forge.typegen import TypeGenerator
+        app_inst = ForgeApp(str(config_path))
+        if hasattr(app_inst, "bridge"):
+            dts_content = TypeGenerator(app_inst.bridge.get_command_registry()).generate()
+            out_path = project_dir / "src" / "forge-env.d.ts"
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(dts_content, encoding="utf-8")
+            _print_note("Successfully generated src/forge-env.d.ts", level="ok")
+    except Exception as exc:
+        _print_note(f"Type generation failed: {exc} (non-fatal)", level="warning")
 
     _print_note("Launching dev process", level="ok")
     if inspect:
@@ -2693,6 +2786,18 @@ def build_app(
     if result_format == "table":
         _print_project_snapshot(project_dir, config, mode=f"build:{normalized_target}")
         _print_validation_summary(validation)
+        _print_note("Generating TypeScript definitions for production...", level="info")
+        try:
+            from forge.app import ForgeApp
+            from forge.typegen import TypeGenerator
+            app_inst = ForgeApp(str(config_path))
+            if hasattr(app_inst, "bridge"):
+                dts_content = TypeGenerator(app_inst.bridge.get_command_registry()).generate()
+                out_path = project_dir / "src" / "forge-env.d.ts"
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                out_path.write_text(dts_content, encoding="utf-8")
+        except Exception as exc:
+            _print_note(f"Production type generation failed: {exc} (non-fatal)", level="warning")
 
     build_fn = _build_web if normalized_target == "web" else _build_desktop
 
@@ -3636,16 +3741,16 @@ def _copy_template(
                 shutil.copy2(item, dest)
 
 
-def _write_frontend_workspace_files(project_dir: Path, template: str, name: str) -> None:
+def _write_frontend_workspace_files(project_dir: Path, template: str, name: str, tailwind: bool = False) -> None:
     package_name = _slugify(name)
     package_json_path = project_dir / "package.json"
     vite_config_path = project_dir / "vite.config.mjs"
 
     dependencies: dict[str, str] = {
-        "@forgedesk/api": "^2.0.0",
+        "@forgedesk/api": "^3.0.0",
     }
     dev_dependencies: dict[str, str] = {
-        "@forgedesk/vite-plugin": "^2.0.0",
+        "@forgedesk/vite-plugin": "^3.0.0",
         "vite": "^6.2.0",
     }
     plugin_import = ""
@@ -3667,7 +3772,74 @@ def _write_frontend_workspace_files(project_dir: Path, template: str, name: str)
         plugin_import = 'import { svelte } from "@sveltejs/vite-plugin-svelte"\n'
         plugin_usage = "svelte(), "
 
+
+    if tailwind:
+        dev_dependencies.update({
+            "tailwindcss": "^3.4.1",
+            "postcss": "^8.4.38",
+            "autoprefixer": "^10.4.19"
+        })
+        
+        # Write Tailwind config
+        (project_dir / "tailwind.config.js").write_text(
+            "/** @type {import('tailwindcss').Config} */
+"
+            "export default {
+"
+            "  content: [
+"
+            "    \"./src/frontend/**/*.{js,ts,jsx,tsx,vue,svelte,html}\",
+"
+            "  ],
+"
+            "  theme: {
+"
+            "    extend: {},
+"
+            "  },
+"
+            "  plugins: [],
+"
+            "}
+",
+            encoding="utf-8"
+        )
+        
+        # Write PostCSS config
+        (project_dir / "postcss.config.js").write_text(
+            "export default {
+"
+            "  plugins: {
+"
+            "    tailwindcss: {},
+"
+            "    autoprefixer: {},
+"
+            "  },
+"
+            "}
+",
+            encoding="utf-8"
+        )
+        
+        # Inject tailwind directives into main css file
+        css_file = project_dir / "src" / "frontend" / "index.css"
+        if template in ["vue", "svelte", "plain"]:
+            css_file = project_dir / "src" / "frontend" / "style.css"
+        
+        if css_file.exists():
+            original_css = css_file.read_text("utf-8")
+            css_file.write_text(
+                "@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+" + original_css,
+                encoding="utf-8"
+            )
+
     package_json = {
+
         "name": package_name,
         "private": True,
         "version": "1.0.0",
@@ -3706,14 +3878,14 @@ def _write_frontend_workspace_files(project_dir: Path, template: str, name: str)
     )
 
 
-def _inject_dev_server_defaults(config_path: Path) -> None:
+def _inject_dev_server_defaults(config_path: Path, package_manager: str = "npm") -> None:
     content = config_path.read_text(encoding="utf-8")
     if "dev_server_command" in content:
         return
     marker = "[dev]\nfrontend_dir = \"src/frontend\"\nhot_reload = true\nport = 5173\n"
     replacement = (
         marker
-        + 'dev_server_command = "npm run dev"\n'
+        + f'dev_server_command = "{package_manager} run dev"\n'
         + 'dev_server_url = "http://127.0.0.1:5173"\n'
     )
     config_path.write_text(content.replace(marker, replacement), encoding="utf-8")

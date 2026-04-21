@@ -1,0 +1,23 @@
+[app]
+name = "Data AI Explorer"
+version = "1.0.0"
+description = "Showcase of Pandas zero-copy, LLMs, and System Automation"
+
+[build]
+entry = "app.py"
+
+[dev]
+frontend_dir = "src"
+
+[permissions]
+filesystem = true
+forge_extensions = true
+forge_automation = true
+
+[plugins]
+enabled = true
+modules = [
+    "forge.builtins.pandas_stream",
+    "forge.builtins.automation",
+    "forge.builtins.llm_local"
+]

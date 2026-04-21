@@ -4,50 +4,65 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://docs.forgedesk.dev',
-	integrations: [
-		starlight({
-			title: 'ForgeDesk',
-			description: 'Build small, fast, secure desktop apps with Python + native webviews.',
-			social: [
-				{ icon: 'github', label: 'GitHub', href: 'https://github.com/swadhinbiswas/ForgeDesk' }
-			],
-			sidebar: [
-				{
-					label: 'Start',
-					items: [
-						{ label: 'What is ForgeDesk?', slug: 'getting-started' },
-						{ label: 'Architecture', slug: 'architecture' },
-						{ label: 'Migration from Electron', slug: 'migration-from-electron' },
-					],
-				},
-				{
-					label: 'Installation',
-					autogenerate: { directory: 'install' },
-				},
-				{
-					label: 'Guides',
-					items: [
-						{ label: 'Backend Power', slug: 'backend-power' },
-						{ label: 'Plugins', slug: 'plugins' },
-						{ label: 'Security', slug: 'security' },
-					],
-				},
-				{
-					label: 'Frontend',
-					autogenerate: { directory: 'frontend' },
-				},
-				{
-					label: 'Reference',
-					items: [
-						{ label: 'API Reference', slug: 'api-reference' },
-					],
-				},
-				{
-					label: 'Blog',
-					autogenerate: { directory: 'blog' },
-				},
-			],
-		}),
-	],
+        site: 'https://docs.forgedesk.dev',
+        integrations: [
+                starlight({
+                        title: 'ForgeDesk',
+                        head: [
+                                { tag: 'link', attrs: { rel: 'alternate', type: 'application/rss+xml', title: 'ForgeDesk Blog', href: 'https://docs.forgedesk.dev/rss.xml' } }
+                        ],
+                        customCss: [
+                                './src/styles/custom.css',
+                        ],
+                        logo: {
+                                src: './src/assets/logo.svg',
+                        },
+                        description: 'Build small, fast, secure desktop apps with Python + native webviews.',
+                        social: [
+                                { icon: 'github', label: 'GitHub', href: 'https://github.com/swadhinbiswas/ForgeDesk' }
+                        ],
+                        components: {
+                                SocialIcons: './src/components/SiteNavigation.astro',
+                        },
+                        sidebar: [
+                                {
+                                        label: 'Guides',
+                                        autogenerate: { directory: 'guides' },
+                                },
+                                {
+                                        label: 'References',
+                                        autogenerate: { directory: 'references' },
+                                        collapsed: true,
+                                },
+                                {
+                                        label: 'Quick Start',
+                                        autogenerate: { directory: 'quick-start' },
+                                },
+                                {
+                                        label: 'Core Concepts',
+                                        autogenerate: { directory: 'core-concepts' },
+                                },
+                                {
+                                        label: 'Security',
+                                        autogenerate: { directory: 'security' },
+                                },
+                                {
+                                        label: 'Develop',
+                                        autogenerate: { directory: 'develop' },
+                                },
+                                {
+                                        label: 'Distribute',
+                                        autogenerate: { directory: 'distribute' },
+                                },
+                                {
+                                        label: 'Learn',
+                                        autogenerate: { directory: 'learn' },
+                                },
+                                {
+                                        label: 'Plugins',
+                                        autogenerate: { directory: 'plugins' },
+                                }
+                        ],
+                }),
+        ],
 });

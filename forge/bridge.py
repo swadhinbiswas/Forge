@@ -20,7 +20,6 @@ from __future__ import annotations
 import asyncio
 import functools
 import inspect
-import json
 import logging
 import os
 import re
@@ -29,9 +28,34 @@ import time
 import uuid
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from typing import get_type_hints, Any, Callable, Dict, Optional
+from typing import get_type_hints, Any, Callable, Dict, Optional, Union
+
+import msgspec
 
 logger = logging.getLogger(__name__)
+
+# ─── Data Structures ───
+class IPCCommandMeta(msgspec.Struct):
+    origin: Optional[str] = None
+    window_label: Optional[str] = None
+    # Support arbitrary additional metadata
+    extra: Dict[str, Any] = {}
+
+class IPCCommand(msgspec.Struct):
+    command: Optional[str] = None
+    cmd: Optional[str] = None
+    id: Optional[Union[str, int]] = None
+    correlation_id: Optional[str] = None
+    protocol: Optional[str] = None
+    protocolVersion: Optional[str] = None
+    trace: bool = False
+    include_meta: bool = False
+    args: Dict[str, Any] = {}
+    meta: Optional[Dict[str, Any]] = None
+
+# pre-instantiate decoder for massive speedups
+_ipc_decoder = msgspec.json.Decoder(IPCCommand)
+
 
 # ─── Constants ───
 PROTOCOL_VERSION = "1.0"
@@ -155,7 +179,7 @@ class IPCBridge:
             import msgspec
             sig = inspect.signature(func)
             hints = get_type_hints(func)
-            
+
             field_definitions = []
             has_var_keyword = False
             for name, param in sig.parameters.items():
@@ -167,28 +191,28 @@ class IPCBridge:
 
                 if name in ("self", "cls", "state"):
                     continue
-                
+
                 param_type = hints.get(name, Any)
-                
+
                 try:
                     from forge.state import AppState
                     if param_type is AppState:
                         continue
                 except ImportError:
                     pass
-                
+
                 if getattr(self, "_app", None) and getattr(self._app, "state", None):
                     if getattr(self._app.state, "has", None) and self._app.state.has(param_type):
                         continue
-                        
+
                 if param.default is inspect.Parameter.empty:
                     field_definitions.append((name, param_type))
                 else:
                     field_definitions.append((name, param_type, param.default))
-            
+
             # create named model
             model = msgspec.defstruct(f"{func.__name__}_Args", field_definitions)
-            
+
             def validator(kwargs: Dict[str, Any]) -> Dict[str, Any]:
                 try:
                     res = msgspec.convert(kwargs, type=model)
@@ -200,7 +224,7 @@ class IPCBridge:
                     return valid
                 except msgspec.ValidationError as e:
                     raise ValueError(f"Payload validation failed: {e}") from None
-                    
+
             return validator
         except Exception as e:
             logger.warning(f"Could not generate strict validator for {func.__name__}: {e}")
@@ -284,7 +308,7 @@ class IPCBridge:
                     "type": str(hint) if hint else "Any",
                     "optional": param.default is not inspect.Parameter.empty,
                 })
-            
+
             return {
                 "args": args_schema,
                 "return_type": str(hints.get("return")) if "return" in hints else "Any",
@@ -393,7 +417,7 @@ class IPCBridge:
         config = getattr(self._app, "config", None)
         permissions = getattr(config, "permissions", None)
         if permissions is None:
-            return True
+            return False
 
         return bool(getattr(permissions, capability, False))
 
@@ -491,12 +515,12 @@ class IPCBridge:
                 print(f"\n\033[36m[IPC REQ]\033[0m \033[1m{cmd}\033[0m: {raw_message[:500]}")
             except Exception:
                 print(f"\n\033[36m[IPC REQ]\033[0m \033[1munknown\033[0m: {raw_message[:500]}")
-                
+
         result = self._invoke_command_internal(raw_message)
-        
+
         if inspect:
             print(f"\033[32m[IPC RES]\033[0m {result[:500]}")
-            
+
         return result
 
     def _invoke_command_internal(self, raw_message: str) -> str:
@@ -542,18 +566,19 @@ class IPCBridge:
 
             # 2. Parse JSON
             try:
-                data = json.loads(raw_message)
-            except Exception:
+                data = _ipc_decoder.decode(raw_message.encode("utf-8") if isinstance(raw_message, str) else raw_message)
+            except msgspec.ValidationError as e:
+                return self._error_response(None, f"Request validation failed: {e}")
+            except msgspec.DecodeError:
                 return self._error_response(None, "Invalid JSON")
+            except Exception:
+                return self._error_response(None, "Malformed payload")
 
-            if not isinstance(data, dict):
-                return self._error_response(None, "Request must be a JSON object")
+            msg_id = data.id
+            correlation_id = data.correlation_id or str(uuid.uuid4())
+            trace_requested = bool(data.trace or data.include_meta)
 
-            msg_id = data.get("id")
-            correlation_id = data.get("correlation_id") or str(uuid.uuid4())
-            trace_requested = bool(data.get("trace") or data.get("include_meta"))
-
-            protocol = data.get("protocol") or data.get("protocolVersion")
+            protocol = data.protocol or data.protocolVersion
             if protocol is not None and str(protocol) not in SUPPORTED_PROTOCOL_VERSIONS:
                 return self._error_response(
                     msg_id,
@@ -564,7 +589,7 @@ class IPCBridge:
                 )
 
             # 3. Required fields
-            cmd_name = data.get("command") or data.get("cmd")
+            cmd_name = data.command or data.cmd
             command_name = cmd_name
             if not cmd_name:
                 return self._error_response(
@@ -586,27 +611,10 @@ class IPCBridge:
                 )
 
             # 5. Args validation
-            args = data.get("args", {})
-            if not isinstance(args, dict):
-                return self._error_response(
-                    msg_id,
-                    "Args must be a JSON object",
-                    code="invalid_args",
-                    correlation_id=correlation_id,
-                    meta=self._build_trace_meta(start_time, trace_requested, command_name),
-                )
+            args = data.args or {}
 
-            meta = data.get("meta", {})
-            if meta is None:
-                meta = {}
-            if not isinstance(meta, dict):
-                return self._error_response(
-                    msg_id,
-                    "Meta must be a JSON object when provided",
-                    code="invalid_meta",
-                    correlation_id=correlation_id,
-                    meta=self._build_trace_meta(start_time, trace_requested, command_name),
-                )
+            meta = data.meta or {}
+
             origin = meta.get("origin") if isinstance(meta.get("origin"), str) else None
             window_label = meta.get("window_label") if isinstance(meta.get("window_label"), str) else None
 
@@ -687,7 +695,7 @@ class IPCBridge:
                             correlation_id=correlation_id,
                             meta=self._build_trace_meta(start_time, trace_requested, command_name, capability, cmd_version),
                         )
-                
+
                 result = self._execute_command(func, args)
                 self._circuit_breaker.record_success(cmd_name)
                 return self._success_response(
@@ -877,7 +885,15 @@ class IPCBridge:
         meta: Optional[dict[str, Any]] = None,
     ) -> str:
         """Build a JSON success response with correlation tracking."""
-        return json.dumps(
+        # Auto-route binary memory transfers
+        if isinstance(result, (bytes, bytearray, memoryview)):
+            import uuid
+            from forge.memory import buffers
+            blob_id = str(uuid.uuid4())
+            buffers[blob_id] = result
+            result = {"__forge_blob": f"forge-memory://{blob_id}"}
+
+        return msgspec.json.encode(
             {
                 "type": "reply",
                 "protocol": PROTOCOL_VERSION,
@@ -890,7 +906,7 @@ class IPCBridge:
                 "error_detail": None,
                 "meta": meta,
             }
-        )
+        ).decode("utf-8")
 
     def _error_response(
         self,
@@ -901,7 +917,7 @@ class IPCBridge:
         meta: Optional[dict[str, Any]] = None,
     ) -> str:
         """Build a JSON error response with structured error detail."""
-        return json.dumps(
+        return msgspec.json.encode(
             {
                 "type": "reply",
                 "protocol": PROTOCOL_VERSION,
@@ -918,7 +934,7 @@ class IPCBridge:
                 },
                 "meta": meta,
             }
-        )
+        ).decode("utf-8")
 
     # ─── Cleanup ───
 

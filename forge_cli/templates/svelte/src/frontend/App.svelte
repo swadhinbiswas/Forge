@@ -1,235 +1,117 @@
 <script>
+  import { onMount } from 'svelte';
   import forge, { invoke } from '@forgedesk/api';
+  import './style.css';
 
-  let name = 'Developer';
+  let name = '';
   let greeting = '';
   let systemInfo = null;
-  let loading = false;
-  let error = null;
+  let loadingGreet = false;
+  let loadingInfo = false;
+  let errorGreet = null;
+  let errorInfo = null;
 
   async function handleGreet() {
-    loading = true;
-    error = null;
+    loadingGreet = true;
+    errorGreet = null;
+    greeting = '';
     try {
-      const result = await invoke('greet', { name });
+      const result = await invoke('greet', { name: name || 'Developer' });
       greeting = result;
-      
-      // Copy to clipboard
-      await forge.clipboard.write(result);
+      try { await forge.clipboard.write(result); } catch(e) {}
     } catch (err) {
-      error = err.message;
+      errorGreet = err.message || String(err);
     } finally {
-      loading = false;
+      loadingGreet = false;
     }
   }
 
   async function handleGetInfo() {
-    loading = true;
-    error = null;
+    loadingInfo = true;
+    errorInfo = null;
+    systemInfo = null;
     try {
       const info = await invoke('get_system_info');
       systemInfo = info;
     } catch (err) {
-      error = err.message;
+      errorInfo = err.message || String(err);
     } finally {
-      loading = false;
+      loadingInfo = false;
     }
   }
 </script>
 
-<main class="app">
-  <header class="header">
-    <h1>⚡ {{PROJECT_NAME}}</h1>
-    <p class="tagline">Built with Forge + Svelte</p>
+<div id="noise"></div>
+<div class="glow-bg"></div>
+
+<div class="container">
+  <header>
+    <div class="logo-container">
+      <div class="logo">⚡</div>
+    </div>
+    <h1>{{PROJECT_NAME}}</h1>
+    <p class="tagline">Welcome to the future of Desktop Apps mapped with Python.</p>
   </header>
 
-  <section class="main">
-    <div class="card">
-      <h2>Greeting</h2>
-      <div class="input-group">
-        <input
-          type="text"
-          bind:value={name}
-          placeholder="Enter your name"
-        />
-        <button on:click={handleGreet} disabled={loading}>
-          {loading ? '...' : 'Greet'}
+  <main>
+    <section class="card glass">
+      <div class="card-header">
+        <div class="dot-group">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <h2>Command Execution</h2>
+      </div>
+      <div class="card-body">
+        <p class="desc">Enter a name to call the <code>greet</code> python command via IPC.</p>
+        <div class="input-group">
+          <input
+            type="text"
+            bind:value={name}
+            placeholder="Enter your name..."
+            autocomplete="off"
+          />
+          <button on:click={handleGreet} disabled={loadingGreet}>
+            {#if loadingGreet}Running...{:else}Run{/if}
+          </button>
+        </div>
+        {#if greeting}
+          <div class="output-box success show">{greeting}</div>
+        {/if}
+        {#if errorGreet}
+          <div class="output-box error show">{errorGreet}</div>
+        {/if}
+      </div>
+    </section>
+
+    <section class="card glass">
+      <div class="card-header">
+        <div class="dot-group">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+        </div>
+        <h2>System Telemetry</h2>
+      </div>
+      <div class="card-body">
+        <p class="desc">Fetching live diagnostics seamlessly from Python.</p>
+        <button class="secondary-btn" on:click={handleGetInfo} disabled={loadingInfo}>
+          {#if loadingInfo}Fetching...{:else}Fetch System Info{/if}
         </button>
+        {#if systemInfo}
+          <div class="output-box info show">
+            {JSON.stringify(systemInfo, null, 2)}
+          </div>
+        {/if}
+        {#if errorInfo}
+          <div class="output-box error show">{errorInfo}</div>
+        {/if}
       </div>
-      {#if greeting}
-        <p class="result success">{greeting}</p>
-      {/if}
-    </div>
+    </section>
+  </main>
 
-    <div class="card">
-      <h2>System Info</h2>
-      <button on:click={handleGetInfo} disabled={loading}>
-        {loading ? 'Loading...' : 'Get Info'}
-      </button>
-      {#if systemInfo}
-        <pre class="result">{JSON.stringify(systemInfo, null, 2)}</pre>
-      {/if}
-    </div>
-
-    {#if error}
-      <div class="card error">
-        <h2>Error</h2>
-        <p class="result error">{error}</p>
-      </div>
-    {/if}
-  </section>
-
-  <footer class="footer">
-    <p>Forge Framework v1.0.0</p>
+  <footer>
+    <p>Powered by <strong>Forge Framework</strong></p>
   </footer>
-</main>
-
-<style>
-  :global(:root) {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  }
-
-  :global(body) {
-    background: #0a0a0f;
-    color: #ffffff;
-    margin: 0;
-    min-height: 100vh;
-  }
-
-  .app {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-
-  .header {
-    text-align: center;
-    margin-bottom: 3rem;
-    padding: 2rem 0;
-  }
-
-  .header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #00d4ff, #7b2fff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 0.5rem;
-  }
-
-  .tagline {
-    color: #a0a0b0;
-    font-size: 1.1rem;
-  }
-
-  .main {
-    display: grid;
-    gap: 1.5rem;
-  }
-
-  .card {
-    background: #1a1a25;
-    border: 1px solid #2a2a3a;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
-
-  .card h2 {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-    color: #00d4ff;
-  }
-
-  .input-group {
-    display: flex;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  input[type="text"] {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    background: #12121a;
-    border: 1px solid #2a2a3a;
-    border-radius: 8px;
-    color: #ffffff;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  input:focus {
-    border-color: #00d4ff;
-  }
-
-  button {
-    padding: 0.75rem 1.5rem;
-    background: #00d4ff;
-    color: #0a0a0f;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  button:hover:not(:disabled) {
-    background: #00b8e6;
-    transform: translateY(-1px);
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .result {
-    background: #12121a;
-    border: 1px solid #2a2a3a;
-    border-radius: 8px;
-    padding: 1rem;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.9rem;
-    margin-top: 1rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  .result.success {
-    color: #00ff88;
-  }
-
-  .result.error {
-    color: #ff4757;
-    border-color: #ff4757;
-  }
-
-  .footer {
-    text-align: center;
-    margin-top: 3rem;
-    padding: 2rem 0;
-    color: #a0a0b0;
-    font-size: 0.9rem;
-  }
-
-  @media (max-width: 600px) {
-    .app {
-      padding: 1rem;
-    }
-
-    .header h1 {
-      font-size: 1.75rem;
-    }
-
-    .input-group {
-      flex-direction: column;
-    }
-
-    button {
-      width: 100%;
-    }
-  }
-</style>
+</div>

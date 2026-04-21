@@ -2,58 +2,25 @@
 
 from __future__ import annotations
 
-import importlib
 import logging
-import platform
-import shutil
-import subprocess
-from pathlib import Path
 from typing import Any
 
 from forge.bridge import command
+from forge.forge_core import NotificationManager
 
 logger = logging.getLogger(__name__)
 
 
 class NotificationAPI:
-    """Desktop notification surface with graceful backend fallback."""
+    """Desktop notification surface with native Rust backend."""
 
     __forge_capability__ = "notifications"
 
     def __init__(self, app: Any) -> None:
         self._app = app
-        self._backend_name = "none"
-        self._backend_available = False
+        self._manager = NotificationManager()
         self._history: list[dict[str, Any]] = []
         self._max_history = 50
-
-    def _resolve_backend(self) -> tuple[str, Any] | None:
-        try:
-            notification_module = importlib.import_module("plyer.notification")
-            self._backend_name = "plyer"
-            self._backend_available = True
-            return self._backend_name, notification_module
-        except ImportError:
-            pass
-
-        if platform.system() == "Linux" and shutil.which("notify-send"):
-            self._backend_name = "notify-send"
-            self._backend_available = True
-            return self._backend_name, shutil.which("notify-send")
-
-        if platform.system() == "Darwin" and shutil.which("osascript"):
-            self._backend_name = "osascript"
-            self._backend_available = True
-            return self._backend_name, shutil.which("osascript")
-
-        if platform.system() == "Windows" and shutil.which("powershell"):
-            self._backend_name = "powershell"
-            self._backend_available = True
-            return self._backend_name, shutil.which("powershell")
-
-        self._backend_name = "none"
-        self._backend_available = False
-        return None
 
     def _record(self, payload: dict[str, Any]) -> dict[str, Any]:
         self._history.append(payload)
@@ -75,50 +42,24 @@ class NotificationAPI:
         if not title:
             raise ValueError("Notification title cannot be empty")
 
-        backend = self._resolve_backend()
         payload = {
             "title": title,
             "body": body,
-            "icon": str(Path(icon).resolve()) if icon else None,
+            "icon": icon,
             "app_name": app_name or self._app.config.app.name,
             "timeout": int(timeout),
-            "backend": backend[0] if backend is not None else self._backend_name,
+            "backend": "notify-rust",
             "delivered": False,
         }
 
-        if backend is None:
-            logger.info("No notification backend available")
-            return self._record(payload)
-
-        backend_name, backend_impl = backend
         try:
-            if backend_name == "plyer":
-                backend_impl.notify(
-                    title=title,
-                    message=body,
-                    app_name=payload["app_name"],
-                    timeout=payload["timeout"],
-                    app_icon=payload["icon"],
-                )
-            elif backend_name == "notify-send":
-                cmd = [backend_impl, title, body]
-                if payload["icon"]:
-                    cmd.extend(["-i", payload["icon"]])
-                subprocess.run(cmd, check=False, capture_output=True, text=True)
-            elif backend_name == "osascript":
-                script = f'display notification {body!r} with title {title!r}'
-                subprocess.run([backend_impl, "-e", script], check=False, capture_output=True, text=True)
-            elif backend_name == "powershell":
-                script = (
-                    "Add-Type -AssemblyName System.Windows.Forms;"
-                    "$n=New-Object System.Windows.Forms.NotifyIcon;"
-                    "$n.Icon=[System.Drawing.SystemIcons]::Information;"
-                    f'$n.BalloonTipTitle={title!r};'
-                    f'$n.BalloonTipText={body!r};'
-                    "$n.Visible=$true;"
-                    f'$n.ShowBalloonTip({max(int(timeout), 1) * 1000});'
-                )
-                subprocess.run([backend_impl, "-NoProfile", "-Command", script], check=False, capture_output=True, text=True)
+            self._manager.show(
+                title,
+                body,
+                payload["app_name"],
+                payload["icon"],
+                int(timeout * 1000) if timeout else None
+            )
             payload["delivered"] = True
         except Exception as exc:
             payload["error"] = str(exc)
@@ -129,10 +70,9 @@ class NotificationAPI:
     @command("notification_state")
     def state(self) -> dict[str, Any]:
         """Return notification backend and delivery history information."""
-        self._resolve_backend()
         return {
-            "backend": self._backend_name,
-            "backend_available": self._backend_available,
+            "backend": "notify-rust",
+            "backend_available": True,
             "sent_count": len(self._history),
             "last": self._history[-1] if self._history else None,
         }

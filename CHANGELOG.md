@@ -5,6 +5,78 @@ All notable changes to Forge Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-04-12
+
+### Added
+
+#### Architecture
+- **Python 3.14+ NoGIL/free-threaded** support — true parallel command execution
+- **Modular Rust runtime** — decomposed `lib.rs` into `window/`, `platform/`, `events.rs`
+- **PyO3 0.28** with free-threaded Python interop
+- **22 API modules** — filesystem, shell, dialog, clipboard, notifications, tray, menu, system, screen, shortcuts, lifecycle, keychain, deep links, autostart, power, printing, drag-drop, window state, OS integration, serial, updater
+- **20 builtin plugins** — database, crypto, i18n, themes, file watching, network, scheduler, telemetry, auth, archive, compression, cloud sync, media, memory cache, registry, serialization, fs tools, hardware, AI/ML
+- **WebSocket client API** — persistent server connections with auto-reconnect
+- **Background task system** — one-shot, persistent, and interval tasks with NoGIL parallelism
+- **Streaming IPC / event channels** — push multiple messages per invoke for progress, data streams
+- **HTTP client API** — full HTTP client exposed to JS SDK with download/upload progress
+- **Cross-window messaging** — window-to-window event bus via Python backend
+- **Content Security Policy** — auto-injected CSP headers for XSS protection
+
+#### IPC Bridge
+- Protocol versioning with `v1.0` envelope format
+- Correlation IDs for request tracing
+- `msgspec`-based strict payload validation
+- Circuit breaker for automatic error recovery
+- Rate limiting (calls/second)
+- Error sanitization (strips filesystem paths)
+- Request size limits (10MB max)
+
+#### Security
+- Capability-gated API access per window
+- Path-scoped filesystem permissions (fnmatch glob patterns)
+- Command allow/deny lists with strict mode
+- Origin validation for WebView requests
+- Window-scoped ACLs
+
+#### Window Management
+- Multi-window support with label-based routing
+- Window state persistence (position, size, maximized)
+- Native vibrancy effects (macOS/Windows)
+- Window positioner (center, tray-anchor, screen-edge)
+
+#### Lifecycle
+- Close-to-tray support — minimize to system tray on close
+- `on_ready` / `on_close` lifecycle hooks
+- Crash reporter with structured error codes
+- Support bundle export for diagnostics
+
+#### CLI
+- `forge create` — project scaffolding with plain, react, vue, svelte templates
+- `forge dev` — hot reload with `watchfiles`
+- `forge build` — production build via maturin/nuitka
+- `forge sign` — macOS codesign/notarization, Windows signtool
+- `forge release` — release manifest generation
+- `forge doctor` — environment validation
+
+#### Packaging
+- macOS `.app` bundles with notarization
+- Windows NSIS installers with code signing
+- Linux AppImage generation
+- Auto-updater with ed25519-signed manifests
+
+#### Frontend SDK
+- `window.__forge__` API with typed namespaces: `fs`, `clipboard`, `dialog`, `app`, `menu`, `tray`, `notifications`, `deepLink`, `runtime`, `updater`, `window`, `ws`, `http`, `tasks`, `channel`
+- Dual transport: native IPC (desktop) + WebSocket (web mode)
+
+### Changed
+- Renamed PyPI package to `forgedesk`
+- npm packages scoped under `@forgedesk/`
+- Thread pool uses NoGIL-aware `ThreadPoolExecutor`
+
+### Fixed
+- WebKitGTK Wayland compositor crash on Linux
+- CLI complex template absolute import paths
+
 ## [2.0.2] - 2024-05-31
 
 ### Fixed

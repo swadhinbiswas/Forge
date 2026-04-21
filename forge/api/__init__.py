@@ -18,6 +18,10 @@ from .keychain import KeychainAPI
 from .window_state import WindowStateAPI
 from .drag_drop import DragDropAPI
 from .shell import ShellAPI
+from .websocket import WebSocketAPI
+from .window_messaging import WindowMessagingAPI
+from .opener import OpenerAPI
+from .positioner import PositionerAPI
 
 __all__ = [
     "ClipboardAPI",
@@ -40,4 +44,8 @@ __all__ = [
     "WindowStateAPI",
     "DragDropAPI",
     "ShellAPI",
+    "WebSocketAPI",
+    "WindowMessagingAPI",
+    "OpenerAPI",
+    "PositionerAPI",
 ]

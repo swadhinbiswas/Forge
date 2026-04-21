@@ -1,5 +1,10 @@
-pub mod assets;
 pub mod auto_launch;
-pub mod keychain;
 pub mod single_instance;
+pub mod keychain;
 pub mod vibrancy;
+pub mod clipboard;
+pub mod notification;
+pub mod dialog;
+pub mod assets;
+pub mod menu;
+pub mod tray;

@@ -49,6 +49,7 @@ class WindowConfig:
     transparent: bool = False
     vibrancy: str | None = None  # macOS/Windows native blur materials (e.g. 'mica', 'acrylic', 'sidebar', 'hud')
     remember_state: bool = True  # Persist window position/size/maximized across restarts
+    close_to_tray: bool = False  # Minimize to system tray on close instead of quitting
 
 
 @dataclass
@@ -176,10 +177,22 @@ class ShellPermissions:
     deny_urls: list[str] = field(default_factory=list)
 
 @dataclass
+class WebSocketPermissions:
+    """WebSocket client connection scopes.
+
+    ``allowed_origins`` restricts which server URLs can be connected to.
+    ``max_connections`` caps the number of simultaneous WebSocket connections.
+    """
+    allowed_origins: list[str] = field(default_factory=list)
+    max_connections: int = 10
+
+
+@dataclass
 class PermissionsConfig:
     """API permissions configuration."""
 
     filesystem: bool | FileSystemPermissions = True
+    tasks: bool = True
     shell: bool | ShellPermissions = False
     clipboard: bool = True
     dialogs: bool = True
@@ -197,6 +210,34 @@ class PermissionsConfig:
     printing: bool = True
     window_state: bool = True
     drag_drop: bool = True
+    menu: bool = True
+    serial: bool = False
+    forge_extensions: bool = False
+    websocket: bool | WebSocketPermissions = False
+
+
+@dataclass
+class BuiltinPluginsConfig:
+    """Toggle built-in extension IPC modules (require permissions.forge_extensions)."""
+
+    database: bool = True
+    auth: bool = True
+    cloud_sync: bool = True
+    media: bool = True
+    network: bool = True
+    hardware: bool = True
+    ai_ml: bool = True
+    telemetry: bool = True
+    theme: bool = True
+    scheduler: bool = True
+    crypto: bool = True
+    compression: bool = True
+    fs_tools: bool = True
+    memory_cache: bool = True
+    i18n: bool = True
+    archive: bool = True
+    file_watch: bool = True
+    serialization: bool = True
 
 
 @dataclass
@@ -210,6 +251,8 @@ class SecurityConfig:
     window_scopes: dict[str, list[str]] = field(default_factory=dict)
     strict_mode: bool = False
     rate_limit: int = 0  # Max IPC calls per second, 0 = unlimited
+    allow_devtools: bool | None = None  # None = auto (dev only), explicit bool overrides
+    csp: str | None = None  # Content Security Policy header override (None = use default)
 
 
 @dataclass
@@ -255,6 +298,7 @@ class ForgeConfig:
     permissions: PermissionsConfig = field(default_factory=PermissionsConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
     plugins: PluginsConfig = field(default_factory=PluginsConfig)
+    builtin_plugins: BuiltinPluginsConfig = field(default_factory=BuiltinPluginsConfig)
     updater: UpdaterConfig = field(default_factory=UpdaterConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
@@ -336,6 +380,7 @@ class ForgeConfig:
                 transparent=window_data.get("transparent", False),
                 vibrancy=window_data.get("vibrancy", None),
                 remember_state=window_data.get("remember_state", True),
+                close_to_tray=window_data.get("close_to_tray", False),
             )
 
         # Parse [build] section
@@ -419,6 +464,7 @@ class ForgeConfig:
 
             config.permissions = PermissionsConfig(
                 filesystem=fs_perm,
+                tasks=perm_data.get("tasks", True),
                 shell=shell_perm,
                 clipboard=perm_data.get("clipboard", True),
                 dialogs=perm_data.get("dialogs", True),
@@ -436,7 +482,35 @@ class ForgeConfig:
                 printing=perm_data.get("printing", True),
                 window_state=perm_data.get("window_state", True),
                 drag_drop=perm_data.get("drag_drop", True),
+                menu=perm_data.get("menu", True),
+                serial=perm_data.get("serial", False),
+                forge_extensions=perm_data.get("forge_extensions", False),
+                websocket=_parse_websocket_perm(perm_data.get("websocket", False)),
             )
+
+        if "builtin_plugins" in data:
+            bp = data["builtin_plugins"]
+            if isinstance(bp, dict):
+                config.builtin_plugins = BuiltinPluginsConfig(
+                    database=bool(bp.get("database", True)),
+                    auth=bool(bp.get("auth", True)),
+                    cloud_sync=bool(bp.get("cloud_sync", True)),
+                    media=bool(bp.get("media", True)),
+                    network=bool(bp.get("network", True)),
+                    hardware=bool(bp.get("hardware", True)),
+                    ai_ml=bool(bp.get("ai_ml", True)),
+                    telemetry=bool(bp.get("telemetry", True)),
+                    theme=bool(bp.get("theme", True)),
+                    scheduler=bool(bp.get("scheduler", True)),
+                    crypto=bool(bp.get("crypto", True)),
+                    compression=bool(bp.get("compression", True)),
+                    fs_tools=bool(bp.get("fs_tools", True)),
+                    memory_cache=bool(bp.get("memory_cache", True)),
+                    i18n=bool(bp.get("i18n", True)),
+                    archive=bool(bp.get("archive", True)),
+                    file_watch=bool(bp.get("file_watch", True)),
+                    serialization=bool(bp.get("serialization", True)),
+                )
 
         if "security" in data:
             security_data = data["security"]
@@ -451,6 +525,8 @@ class ForgeConfig:
                 },
                 strict_mode=bool(security_data.get("strict_mode", False)),
                 rate_limit=int(security_data.get("rate_limit", 0)),
+                allow_devtools=security_data.get("allow_devtools"),
+                csp=security_data.get("csp"),
             )
 
         if "plugins" in data:
@@ -584,6 +660,25 @@ class ForgeConfig:
         """
         base = self.get_base_dir()
         return base / self.build.output_dir
+
+    def is_development_mode(self) -> bool:
+        """Return whether the current runtime should behave like a dev session."""
+        env = os.environ.get("FORGE_ENV", "").strip().lower()
+        if env in {"dev", "development"}:
+            return True
+        if env in {"prod", "production"}:
+            return False
+        return bool(self.dev.dev_server_url)
+
+
+def _parse_websocket_perm(val: Any) -> bool | WebSocketPermissions:
+    """Parse websocket permission from forge.toml (bool or dict)."""
+    if isinstance(val, dict):
+        return WebSocketPermissions(
+            allowed_origins=list(val.get("allowed_origins", [])),
+            max_connections=int(val.get("max_connections", 10)),
+        )
+    return bool(val)
 
 
 def _validate_int(value: Any, field_name: str, min_val: int, max_val: int) -> int:
@@ -737,6 +832,8 @@ def _validate_config(config: ForgeConfig) -> None:
         "global_shortcut",
         "updater",
         "system",
+        "serial",
+        "forge_extensions",
         "all",
         "*",
     }

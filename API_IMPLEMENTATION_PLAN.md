@@ -59,6 +59,47 @@ Focusing on making the framework feel like a native, robust, and highly *Pythoni
 ## 🚀 Execution: Progressing to Phase 4
 Starting Phase 4 (UI Vibrancy, Persistency & Native Feel).
 
+## 🧱 Phase 5: Production Hardening & Architectural Audits
+These items address the glaring gaps that separate Forge from a "perfect, production-grade" framework like Tauri.
+
+### 1. ~~IPC Security & Strict Payload Routing (The XSS/RCE Mitigation)~~
+- **Gap:** IPC payload routing currently parses standard JSON with minimal structural enforcement before reaching Python limits. An attacker injecting bad payloads or prototype manipulation attributes could execute arbitrary actions if arguments aren't strictly type-checked.
+- **Action Plan:**
+  - **Adopt `msgspec` Validation:** Change `json.loads(raw_message)` and dictionary passing to `msgspec.json.decode(raw_message, type=CommandEnvelope)` within `forge/bridge.py` for massive speedups and structural immunity.
+  - **Parameter Schema Enforcement:** Validate incoming `args` specifically for each registered command using `inspect` metadata and `msgspec` structures to guarantee types at the boundary.
+
+### 2. Build & Distribution Asset Pipeline (The Native OS Installer Problem)
+- **Gap:** `forge_cli/bundler.py` generates installers via crude string templating (e.g., XML for Windows WiX, Plist strings for macOS).
+- **Action Plan:**
+  - Introduce AST-based generation for `.plist`, `AndroidManifest.xml`, and `.wxs`.
+  - Download Hermetic Toolchains (e.g. WiX, appimagetool) automatically mapped to `.forge/toolchains` instead of depending on the user's host environment.
+  - Handle complex code signing entitlements natively (macOS Hardened Runtime, Windows Authenticode EV limits).
+
+### 3. Application Footprint Minimization
+- **Gap:** Python + Rust + Webview = bloated footprint. Nuitka module trimming leaves behind heavy dependencies.
+- **Action Plan:**
+  - Default optimization switches to `pyoxidizer` configurations leveraging zero-copy, mem-mapped imports for Python environments to dramatically reduce execution overhead.
+  - Shrink the bundled asset directories post-build.
+
+### 4. Zero-Copy & Binary IPC
+- **Gap:** Base JSON IPC serialization causes UI studders with high-frequency updates or large files.
+- **Action Plan:**
+  - Add native IPC streams / ArrayBuffer passing over `window.__forge__.invoke_buffer()` that bypasses UTF-8 string encoding limits.
+  - Implement zero-copy byte serialization directly from `src/lib.rs` to Python `bridge.py` using `msgpack` under the hood.
+
+### 5. Backend Reloading (DX Evolution)
+- **Gap:** Modifying Python logic currently requires killing the Rust host window and restarting the full stack.
+- **Action Plan:**
+  - Integrate an `os.execv` or `importlib.reload` based backend watcher that re-initializes Python state while the Rust Webview instance holds state and reconnects the IPC pipe.
+
+### 6. Delta Updater
+- **Gap:** Updater pulls full 50MB+ bundles.
+- **Action Plan:**
+  - Create a Sidecar Updater binary.
+  - Ship delta binary patches (`courgette/bsdiff` equivalent) directly executed by the isolated sidecar instead of replacing monolithic bundles mid-flight.
+
+---
+
 ## 🧱 Production Hardening Backlog
 These items are now the focus for making the framework feel production-grade:
 

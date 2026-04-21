@@ -14,7 +14,12 @@ resizable = true
 backend = "main:app"
 frontend_dir = "src/frontend"
 
+[dev]
+frontend_dir = "src/frontend"
+hot_reload = true
+port = 5173
+
 [tool.forge_template]
 name = "complex"
 schema_version = 1
-forge_version_range = ">=2.0.0,<3.0.0"
+forge_version_range = ">=3.0.0,<4.0.0"

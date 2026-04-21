@@ -1,6 +1,7 @@
 ---
 title: ForgeDesk 2.0.2 Release
 description: Stability and developer-experience improvements across Linux and project templates.
+date: 2026-04-10
 ---
 
 ForgeDesk 2.0.2 focuses on reliability and first-run developer experience.
@@ -20,5 +21,5 @@ pip install --upgrade forgedesk
 
 ## Related
 
-- [Installation Overview](../install/)
-- [Troubleshooting](../install/troubleshooting/)
+- [Installation Overview](/install/)
+- [Troubleshooting](/install/troubleshooting/)

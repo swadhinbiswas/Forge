@@ -32,18 +32,20 @@ from .bridge import (  # noqa: F401 -- re-export
 )
 from .config import ForgeConfig, load_config
 from .events import EventEmitter
+from .builtins import setup_builtin_plugins
 from .plugins import PluginManager
 from .support import CrashStore, RuntimeLogBuffer, SupportBundleBuilder, register_runtime_log_buffer
 from .window import WindowAPI, WindowManagerAPI
 from .runtime import RuntimeAPI
 from .state import AppState
-from .api.window_state import WindowStateAPI
-from .api.drag_drop import DragDropAPI
+from .channels import ChannelManager
+from .tasks import TaskManager
 from .api import (  # noqa: F401
     ClipboardAPI, DialogAPI, FileSystemAPI, NotificationAPI, SystemAPI,
     MenuAPI, TrayAPI, UpdaterAPI, DeepLinkAPI, ScreenAPI, ShortcutsAPI,
     LifecycleAPI, OSIntegrationAPI, AutostartAPI, PowerAPI, KeychainAPI,
-    PrintingAPI, ShellAPI,
+    PrintingAPI, ShellAPI, WindowStateAPI, DragDropAPI, WebSocketAPI,
+    WindowMessagingAPI, OpenerAPI, PositionerAPI,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,7 +112,8 @@ class ForgeApp:
         self._runtime_logs = RuntimeLogBuffer()
         register_runtime_log_buffer(self._runtime_logs)
         self._crash_store = CrashStore(on_crash=self._on_crash_captured)
-        self._dev_server_url = os.environ.get("FORGE_DEV_SERVER_URL")
+        self._dev_server_url = os.environ.get("FORGE_DEV_SERVER_URL") or self.config.dev.dev_server_url
+        self._debug = False
         self.window = WindowAPI(self)
         self.windows = WindowManagerAPI(self)
         self.runtime = RuntimeAPI(self)
@@ -118,6 +121,8 @@ class ForgeApp:
         self._native_window: Any = None  # NativeWindow, set in run()
         self._proxy: Any = None  # WindowProxy from Rust, set via ready callback
         self.state = AppState()  # Thread-safe typed state container (Tauri State<T> equivalent)
+        self.tasks = TaskManager(self)
+        self.channels = ChannelManager()
 
         # Built-in APIs are attached in _setup_apis()
         self.fs: Any = _DisabledAPI("filesystem")
@@ -131,6 +136,7 @@ class ForgeApp:
         self.deep_links: Any = None
         self.updater: Any = _DisabledAPI("updater")
         self.keychain: Any = _DisabledAPI("keychain")
+        self.serial: Any = None
 
         # Lifecycle hooks
         self._on_ready_hooks: List[Callable] = []
@@ -139,6 +145,7 @@ class ForgeApp:
         # Set up built-in APIs (only those that don't need pywebview)
         self._setup_apis()
         self._register_internal_runtime_commands()
+        setup_builtin_plugins(self)
         self.plugins.load_all()
         self._log_runtime_event("app_initialized", app_name=self.config.app.name)
 
@@ -221,7 +228,7 @@ class ForgeApp:
         self.bridge.register_commands(self.os_integration)
 
         if self.config.permissions.shell:
-            self.shell = ShellAPI(self.config.get_base_dir(), self.config.permissions.shell)
+            self.shell = ShellAPI(self, self.config.get_base_dir(), self.config.permissions.shell)
             self.bridge.register_commands(self.shell)
 
         self.autostart = AutostartAPI(self)
@@ -247,6 +254,47 @@ class ForgeApp:
         if self.config.permissions.dialogs:
             self.dialog = DialogAPI()
             self.bridge.register_commands(self.dialog)
+
+        self.window_messaging = WindowMessagingAPI(self)
+        self.bridge.register_commands(self.window_messaging)
+
+        self.positioner = PositionerAPI(self)
+        self.bridge.register_commands(self.positioner)
+
+        self.opener = OpenerAPI()
+        self.bridge.register_commands(self.opener)
+
+        # Register task API dynamically inline
+        class TaskIPC:
+            __forge_capability__ = "tasks"
+            def task_start(p, name: str, interval: float | None = None) -> str:
+                if interval is not None and interval <= 0:
+                    raise ValueError("interval must be greater than 0")
+
+                if interval is None:
+                    def _persistent(cancel_event):
+                        while not cancel_event.is_set():
+                            cancel_event.wait(0.25)
+                        return "cancelled"
+                    return self.tasks.start(name=name, fn=_persistent)
+
+                def _ticker() -> None:
+                    self.emit("task:tick", {"name": name, "interval": interval})
+
+                return self.tasks.start(name=name, fn=_ticker, interval=interval)
+            def task_cancel(p, task_id: str) -> bool:
+                return self.tasks.cancel(task_id)
+            def task_status(p, task_id: str) -> dict | None:
+                return self.tasks.status(task_id)
+            def task_list(p) -> list:
+                return self.tasks.list_tasks()
+
+        self.bridge.register_commands(TaskIPC())
+
+        ws_config = self.config.permissions.websocket
+        if ws_config:
+            self.ws = WebSocketAPI(self)
+            self.bridge.register_commands(self.ws)
 
         if self.config.permissions.clipboard:
             self.clipboard = ClipboardAPI()
@@ -277,6 +325,12 @@ class ForgeApp:
                 base_dir=self.config.get_base_dir(),
             )
             self.bridge.register_commands(self.updater)
+
+        if getattr(self.config.permissions, "serial", False):
+            from .api.serial import SerialAPI
+
+            self.serial = SerialAPI()
+            self.bridge.register_commands(self.serial)
 
     def _register_pending_commands(self) -> None:
         """Register commands that were decorated before the app was created."""
@@ -330,6 +384,12 @@ class ForgeApp:
         self.bridge.register_command(
             "__forge_runtime_export_support_bundle",
             self._ipc_runtime_export_support_bundle,
+            version="1.0",
+            internal=True,
+        )
+        self.bridge.register_command(
+            "__forge_runtime_log_from_js",
+            self._ipc_runtime_log_from_js,
             version="1.0",
             internal=True,
         )
@@ -431,6 +491,7 @@ class ForgeApp:
         return {
             "allowed_commands": list(self.config.security.allowed_commands),
             "denied_commands": list(self.config.security.denied_commands),
+            "allow_devtools": self.config.security.allow_devtools,
             "expose_command_introspection": bool(self.config.security.expose_command_introspection),
             "allowed_origins": self.allowed_origins(),
             "window_scopes": {
@@ -476,6 +537,18 @@ class ForgeApp:
 
     def _ipc_runtime_export_support_bundle(self, destination: str | None = None) -> str:
         return self.runtime.export_support_bundle(destination)
+
+    def _ipc_runtime_log_from_js(self, level: str, message: str, context: dict | None = None) -> bool:
+        ctx = context or {}
+        if level == "error":
+            logger.error(f"[JS] {message}", extra={"forge_event": "js_log", "forge_meta": ctx})
+        elif level == "warn" or level == "warning":
+            logger.warning(f"[JS] {message}", extra={"forge_event": "js_log", "forge_meta": ctx})
+        elif level == "debug":
+            logger.debug(f"[JS] {message}", extra={"forge_event": "js_log", "forge_meta": ctx})
+        else:
+            logger.info(f"[JS] {message}", extra={"forge_event": "js_log", "forge_meta": ctx})
+        return True
 
     def _ipc_window_set_size(self, width: int | float, height: int | float) -> bool:
         self.window.set_size(width, height)
@@ -740,6 +813,43 @@ class ForgeApp:
                 deduped.append(origin)
         return deduped
 
+    def is_development_mode(self) -> bool:
+        """Return whether this app should behave like a development runtime."""
+        if self._debug or os.environ.get("FORGE_INSPECT") == "1":
+            return True
+        if self._dev_server_url:
+            return True
+        return self.config.is_development_mode()
+
+    def devtools_enabled(self) -> bool:
+        """Return whether devtools should be exposed for this runtime."""
+        override = self.config.security.allow_devtools
+        if override is not None:
+            return bool(override)
+        return self.is_development_mode()
+
+    def content_security_policy(self) -> str:
+        """Resolve the effective content security policy for the current runtime."""
+        if self.config.security.csp:
+            return self.config.security.csp
+        if self.is_development_mode():
+            return (
+                "default-src 'self' forge: forge-asset: forge-memory: http://localhost:* http://127.0.0.1:*; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' forge: http://localhost:* http://127.0.0.1:*; "
+                "style-src 'self' 'unsafe-inline' forge: http://localhost:* http://127.0.0.1:*; "
+                "img-src 'self' data: blob: forge: forge-asset: forge-memory: http://localhost:* http://127.0.0.1:*; "
+                "media-src 'self' data: blob: forge: forge-asset: forge-memory: http://localhost:* http://127.0.0.1:*; "
+                "connect-src 'self' ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:* forge: forge-asset: forge-memory:;"
+            )
+        return (
+            "default-src 'self' forge: forge-asset: forge-memory:; "
+            "script-src 'self' 'unsafe-inline' forge:; "
+            "style-src 'self' 'unsafe-inline' forge:; "
+            "img-src 'self' data: blob: forge: forge-asset: forge-memory:; "
+            "media-src 'self' data: blob: forge: forge-asset: forge-memory:; "
+            "connect-src 'self' forge: forge-asset: forge-memory:;"
+        )
+
     def is_origin_allowed(self, origin: str | None) -> bool:
         """Return whether a caller origin is allowed to use the IPC bridge.
 
@@ -861,7 +971,7 @@ class ForgeApp:
                     if msg_id is not None:
                         js_call = f"window.__forge__._handleMessage({response_json})"
                         logger.debug(f"Sending to JS: {js_call[:200]}")
-                        proxy.evaluate_script(js_call)
+                        proxy.evaluate_script("main", js_call)
                 except Exception as e:
                     logger.error(f"Failed to process or send IPC message response: {e}")
                     import traceback
@@ -900,7 +1010,8 @@ class ForgeApp:
         if os.environ.get("FORGE_INSPECT") == "1":
             try:
                 self._proxy.evaluate_script("main", "window.__FORGE_INSPECT__ = true;")
-                self._proxy.open_devtools()
+                if self.devtools_enabled():
+                    self._proxy.open_devtools()
             except Exception:
                 pass
         self.window._apply_native_event("ready", None)
@@ -1008,6 +1119,14 @@ class ForgeApp:
 
     # ─── Run ───
 
+    def quit(self) -> None:
+        """
+        Force quit the application immediately.
+        Bypasses close_to_tray and actually asks the Rust event loop to terminate.
+        """
+        if self._proxy is not None:
+            self._proxy.close()
+
     def run(self, debug: bool = False) -> None:
         """
         Launch the native window and block until it closes.
@@ -1022,6 +1141,7 @@ class ForgeApp:
         Args:
             debug: Enable debug logging if True.
         """
+        self._debug = bool(debug)
         if debug:
             logging.basicConfig(level=logging.DEBUG)
 
@@ -1039,6 +1159,9 @@ class ForgeApp:
         forge_js_dest = frontend_path / "forge.js"
         if os.path.exists(forge_js_src):
             shutil.copy2(forge_js_src, str(forge_js_dest))
+
+        os.environ["FORGE_RUNTIME_DEVTOOLS"] = "1" if self.devtools_enabled() else "0"
+        os.environ["FORGE_RUNTIME_CSP"] = self.content_security_policy()
 
         # Import the Rust extension
         from .forge_core import NativeWindow
@@ -1069,6 +1192,7 @@ class ForgeApp:
             w_x,
             w_y,
             wc.vibrancy,
+            wc.close_to_tray,
         )
 
         # Register IPC handler — receives (message, proxy) from Rust
@@ -1082,6 +1206,18 @@ class ForgeApp:
         try:
             self._crash_store.install()
             self._native_window.run()
+        except Exception as startup_error:
+            logger.exception("Fatal unhandled exception in Forge application")
+            try:
+                from .forge_core import DialogManager
+                DialogManager().show_message(
+                    "Fatal Application Error",
+                    f"The application encountered a critical error and must close.\n\n{startup_error}",
+                    "error"
+                )
+            except Exception:
+                pass
+            raise
         finally:
             self._crash_store.uninstall()
             # Fire on_close hooks
@@ -1090,6 +1226,12 @@ class ForgeApp:
                     hook()
                 except Exception as e:
                     logger.error(f"on_close hook failed: {e}")
+
+            # Clean up background tasks and channels
+            self.tasks.cancel_all()
+            self.channels.close_all()
+            if hasattr(self, "ws"):
+                self.ws.close_all()
 
             # Clean up the thread pool
             self.bridge.shutdown()

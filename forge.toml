@@ -1,5 +1,10 @@
 [app]
-name = "dummy"
-version = "0.1.0"
-[build]
-frontend_command = "echo ok"
+name = "test_memory"
+window_title = "Memory Test"
+window_width = 800
+window_height = 600
+
+[server]
+port = 8799
+host = "127.0.0.1"
+debug = true

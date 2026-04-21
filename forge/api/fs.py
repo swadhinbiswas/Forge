@@ -88,6 +88,10 @@ class FileSystemAPI:
             base_dir=self._base_path,
         )
 
+        # Register the read scope for the Rust forge-asset:// protocol interceptor
+        from forge.scope import _register_asset_validator
+        _register_asset_validator(self._read_scope)
+
     def _is_path_allowed(self, resolved_path: Path, mode: str = "read") -> bool:
         scope = self._write_scope if mode == "write" else self._read_scope
         return scope.is_path_allowed(resolved_path)
@@ -392,3 +396,35 @@ class FileSystemAPI:
             The base Path object.
         """
         return self._base_path
+
+    def asset_url(self, path: str) -> str:
+        """
+        Convert a local file path into a secure 'forge-asset://' URL 
+        for high-speed binary IPC.
+        
+        This allows the frontend to fetch large files (images, video, models) 
+        natively without JSON-RPC encoding bottlenecks, while still enforcing 
+        the active scope permissions.
+        
+        Args:
+            path: Absolute or relative path to the asset.
+            
+        Returns:
+            A string starting with 'forge-asset://'
+            
+        Raises:
+            ValueError: If the file path is not within the allowed permission scopes.
+        """
+        import urllib.parse
+        
+        # We validate the path against the READ scope
+        resolved = self._resolve_path(path, mode="read", allow_absolute=True)
+        
+        # Convert path to the URL standard
+        path_str = str(resolved).replace("\\", "/")
+        
+        # URL encode to handle spaces and special characters
+        encoded = urllib.parse.quote(path_str)
+        
+        # Construct the specialized protocol URL
+        return f"forge-asset://{encoded}"

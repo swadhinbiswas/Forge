@@ -1,0 +1,27 @@
+[app]
+name = "examples/complex_app"
+version = "0.1.0"
+description = "A complex structured Forge application."
+authors = ["Swadhin"]
+
+[window]
+title = "examples/complex_app"
+width = 1280
+height = 800
+resizable = true
+
+[build]
+backend = "main:app"
+frontend_dir = "src/frontend"
+
+[dev]
+frontend_dir = "src/frontend"
+hot_reload = true
+port = 5200
+dev_server_command = "npm run dev"
+dev_server_url = "http://127.0.0.1:5200"
+
+[tool.forge_template]
+name = "complex"
+schema_version = 1
+forge_version_range = ">=2.0.0,<3.0.0"

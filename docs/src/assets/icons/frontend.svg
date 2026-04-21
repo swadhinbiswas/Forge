@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- Vibrant Blue/Purple gradient -->
+    <linearGradient id="front-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+    <filter id="front-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <g transform="translate(50, 50)">
+    <!-- Core UI representation -->
+    <g filter="url(#front-glow)">
+      <!-- Orbital rings -->
+      <ellipse rx="38" ry="12" fill="none" stroke="url(#front-grad)" stroke-width="2.5" opacity="0.7">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="8s" repeatCount="indefinite" />
+      </ellipse>
+      <ellipse rx="38" ry="12" fill="none" stroke="url(#front-grad)" stroke-width="2.5" opacity="0.7">
+        <animateTransform attributeName="transform" type="rotate" from="120" to="480" dur="8s" repeatCount="indefinite" />
+      </ellipse>
+      <ellipse rx="38" ry="12" fill="none" stroke="url(#front-grad)" stroke-width="2.5" opacity="0.7">
+        <animateTransform attributeName="transform" type="rotate" from="240" to="600" dur="8s" repeatCount="indefinite" />
+      </ellipse>
+      
+      <!-- Inner pulsing core -->
+      <circle cx="0" cy="0" r="10" fill="url(#front-grad)">
+        <animate attributeName="r" values="8; 12; 8" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="0" cy="0" r="4" fill="#ffffff" />
+      
+      <!-- Flowing particles -->
+      <circle cx="38" cy="0" r="3" fill="#ffffff">
+        <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="3s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="-19" cy="33" r="3" fill="#ffffff">
+        <animateTransform attributeName="transform" type="rotate" from="120" to="480" dur="4s" repeatCount="indefinite" />
+      </circle>
+    </g>
+  </g>
+</svg>

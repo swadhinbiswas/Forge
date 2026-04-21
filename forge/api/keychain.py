@@ -18,6 +18,8 @@ class KeychainAPI:
     Manage encrypted credentials via OS native keychains.
     """
 
+    __forge_capability__ = "keychain"
+
     def __init__(self, app: ForgeApp) -> None:
         self._app = app
         name = self._app.config.app.name or "ForgeApp"

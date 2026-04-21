@@ -1,0 +1,17 @@
+<html>
+<body>
+    <h1>Automatic Memory Protocol Test</h1>
+    <button id="fetchBtn">Fetch Memory via IPC</button>
+    <div id="result"></div>
+    <script>
+        document.getElementById('fetchBtn').onclick = async () => {
+            const start = performance.now();
+            // Call the python function that returns bytes
+            const buf = await window.__forge__.invoke('get_massive_data');
+            const end = performance.now();
+            document.getElementById('result').innerText = 
+                `Fetched ${buf.byteLength} bytes automatically over IPC in ${(end - start).toFixed(2)}ms`;
+        };
+    </script>
+</body>
+</html>

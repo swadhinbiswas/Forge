@@ -11,6 +11,8 @@ from forge.bridge import command
 class MenuAPI:
     """Framework-owned application menu model and event surface."""
 
+    __forge_capability__ = "menu"
+
     def __init__(self, app: Any) -> None:
         self._app = app
         self._items: list[dict[str, Any]] = []

@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="sec-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="sec-grad-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="sec-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g transform="translate(50, 50)" filter="url(#sec-glow)">
+    
+    <!-- Outer spinning ring -->
+    <circle cx="0" cy="0" r="38" fill="none" stroke="url(#sec-grad)" stroke-width="1.5" stroke-dasharray="10 30" opacity="0.4">
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" repeatCount="indefinite" />
+    </circle>
+    
+    <circle cx="0" cy="0" r="34" fill="none" stroke="url(#sec-grad)" stroke-width="1" stroke-dasharray="30 10" opacity="0.6">
+      <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="8s" repeatCount="indefinite" />
+    </circle>
+
+    <!-- Shield Path -->
+    <path d="M0 -30 L25 -20 L25 10 C25 25 10 35 0 40 C-10 35 -25 25 -25 10 L-25 -20 Z" fill="none" stroke="url(#sec-grad-glow)" stroke-width="3" stroke-linejoin="round" />
+    
+    <!-- Inner lock/check animation -->
+    <g>
+      <!-- Checkmark -->
+      <path d="M-8 10 L-2 16 L10 2" fill="none" stroke="#10b981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="35" stroke-dashoffset="35">
+        <animate attributeName="stroke-dashoffset" values="35;0;0;35" dur="4s" repeatCount="indefinite" />
+      </path>
+    </g>
+
+    <!-- Scanning line effect over shield -->
+    <line x1="-25" y1="-25" x2="25" y2="-25" stroke="#3b82f6" stroke-width="2" opacity="0.7">
+      <animate attributeName="y1" values="-25;35;-25" dur="3s" repeatCount="indefinite" />
+      <animate attributeName="y2" values="-25;35;-25" dur="3s" repeatCount="indefinite" />
+    </line>
+    
+    <!-- Pulsing center node -->
+    <circle cx="0" cy="0" r="4" fill="#10b981">
+      <animate attributeName="opacity" values="0.2;1;0.2" dur="2s" repeatCount="indefinite" />
+      <animate attributeName="r" values="2;5;2" dur="2s" repeatCount="indefinite" />
+    </circle>
+  </g>
+</svg>

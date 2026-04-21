@@ -36,7 +36,7 @@ def _write_project(tmp_path: Path) -> Path:
                 "[tool.forge_template]",
                 'name = "plain"',
                 "schema_version = 1",
-                'forge_version_range = ">=2.0.0,<3.0.0"',
+                'forge_version_range = ">=3.0.0,<4.0.0"',
             ]
         ),
         encoding="utf-8",
@@ -51,7 +51,7 @@ def _write_plugin_project(tmp_path: Path) -> Path:
     (plugin_dir / "demo_plugin.py").write_text(
         "\n".join(
             [
-                'manifest = {"name": "demo-plugin", "version": "0.1.0", "forge_version": ">=2.0.0,<3.0.0"}',
+                'manifest = {"name": "demo-plugin", "version": "0.1.0", "forge_version": ">=3.0.0,<4.0.0"}',
                 '',
                 'def register(app):',
                 '    return None',
@@ -122,7 +122,7 @@ def test_info_supports_json_output(tmp_path: Path, monkeypatch) -> None:
 
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["forge_version"] == "2.0.0"
+    assert payload["forge_version"] == "3.0.0"
     assert payload["project"]["app"] == {"name": "CLI Test", "version": "1.2.3"}
     assert payload["project"]["entry_exists"] is True
     assert payload["project"]["template"]["name"] == "plain"
@@ -134,7 +134,7 @@ def test_doctor_supports_json_output(tmp_path: Path, monkeypatch) -> None:
     def fake_doctor_payload(project_path: Path) -> dict[str, object]:
         assert project_path == project_dir
         return {
-            "forge_version": "2.0.0",
+            "forge_version": "3.0.0",
             "ok": True,
             "environment": {
                 "os": "Linux",
@@ -158,7 +158,7 @@ def test_doctor_supports_json_output(tmp_path: Path, monkeypatch) -> None:
                 "exists": True,
                 "valid": True,
                 "errors": [],
-                "template": {"present": True, "valid": True, "name": "plain", "schema_version": 1, "forge_version_range": ">=2.0.0,<3.0.0", "errors": []},
+                "template": {"present": True, "valid": True, "name": "plain", "schema_version": 1, "forge_version_range": ">=3.0.0,<4.0.0", "errors": []},
                 "entry_path": str(project_dir / "src" / "main.py"),
                 "frontend_path": str(project_dir / "src" / "frontend"),
                 "entry_exists": True,
@@ -191,8 +191,8 @@ def test_project_payload_reports_invalid_template_contract(tmp_path: Path) -> No
     config_path = project_dir / "forge.toml"
     config_path.write_text(
         config_path.read_text(encoding="utf-8").replace(
-            'forge_version_range = ">=2.0.0,<3.0.0"',
             'forge_version_range = ">=3.0.0,<4.0.0"',
+            'forge_version_range = ">=4.0.0,<5.0.0"',
         ),
         encoding="utf-8",
     )
@@ -204,6 +204,7 @@ def test_project_payload_reports_invalid_template_contract(tmp_path: Path) -> No
 
 
 def test_create_copies_template_contract_metadata(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr("forge_cli.main._setup_python_env", lambda _project_dir: None)
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(
@@ -214,10 +215,11 @@ def test_create_copies_template_contract_metadata(tmp_path: Path, monkeypatch) -
     assert result.exit_code == 0
     generated = (tmp_path / "sample-app" / "forge.toml").read_text(encoding="utf-8")
     assert "[tool.forge_template]" in generated
-    assert 'forge_version_range = ">=2.0.0,<3.0.0"' in generated
+    assert 'forge_version_range = ">=3.0.0,<4.0.0"' in generated
 
 
 def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr("forge_cli.main._setup_python_env", lambda _project_dir: None)
     monkeypatch.chdir(tmp_path)
 
     result = runner.invoke(app, ["create", "workspace-app", "--template", "react", "--author", "Forge Tester"])
@@ -227,14 +229,16 @@ def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) 
     vite_config = (tmp_path / "workspace-app" / "vite.config.mjs").read_text(encoding="utf-8")
     forge_toml = (tmp_path / "workspace-app" / "forge.toml").read_text(encoding="utf-8")
 
-    assert package_json["devDependencies"]["@forgedesk/vite-plugin"] == "^2.0.0"
-    assert package_json["dependencies"]["@forgedesk/api"] == "^2.0.0"
+    assert package_json["devDependencies"]["@forgedesk/vite-plugin"] == "^3.0.0"
+    assert package_json["dependencies"]["@forgedesk/api"] == "^3.0.0"
     assert "forgeVitePlugin" in vite_config
     assert 'dev_server_command = "npm run dev"' in forge_toml
     assert 'dev_server_url = "http://127.0.0.1:5173"' in forge_toml
 
 
 def test_create_prompts_for_template_when_not_provided(tmp_path: Path, monkeypatch) -> None:
+    import sys
+    monkeypatch.setitem(sys.modules, "questionary", None)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("forge_cli.main._setup_python_env", lambda _project_dir: None)
 

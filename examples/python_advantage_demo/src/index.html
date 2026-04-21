@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge: Data-AI Explorer</title>
+    <style>
+        body { font-family: -apple-system, system-ui, sans-serif; padding: 20px; background: #0f172a; color: #f8fafc; }
+        .card { background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2563eb; }
+        input { padding: 10px; border-radius: 5px; border: 1px solid #475569; background: #334155; color: white; width: calc(100% - 22px); }
+        .output { background: #020617; padding: 10px; border-radius: 5px; min-height: 50px; margin-top: 10px; white-space: pre-wrap; font-family: monospace; font-size: 14px;}
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🚀 The Python Advantage Demo</h1>
+    <p>Demonstrating capabilities that outcompete Tauri: Zero-copy Pandas, Local AI, and System Automation.</p>
+
+    <div class="grid">
+        <!-- Pandas Zero-Copy Demo -->
+        <div class="card">
+            <h2>1. Zero-Copy Pandas Streaming</h2>
+            <p>Generate 50,000 rows of complex Pandas frame and stream instantly to JS via <code>forge-memory://</code>.</p>
+            <button id="btn-pandas">Generate Data</button>
+            <div id="out-pandas" class="output">Waiting...</div>
+        </div>
+
+        <!-- Local LLaMA AI Demo -->
+        <div class="card">
+            <h2>2. Local Offshore LLaMA Inference</h2>
+            <p>Stream tokens securely from Python (llama-cpp-python) via IPC Channels.</p>
+            <input type="text" id="model-path" placeholder="Path to .gguf file (e.g. ./llama3.gguf)" style="margin-bottom: 10px;">
+            <button id="btn-load-llm" style="background:#10b981; margin-bottom: 10px;">Load Model</button>
+            
+            <input type="text" id="chat-prompt" placeholder="Ask the local LLaMA model...">
+            <button id="btn-chat" style="margin-top: 10px;">Send Prompt</button>
+            
+            <div id="out-llm" class="output">Chat output...</div>
+        </div>
+    </div>
+
+    <!-- System Automation Demo -->
+    <div class="card">
+        <h2>3. Native System Automation (PyAutoGUI)</h2>
+        <p>Trigger sandboxed OS-level mouse movements and shortcuts directly from the UI.</p>
+        <button id="btn-mouse" style="background:#8b5cf6;">Demo Macro (Move Mouse)</button>
+        <div id="out-mouse" class="output">Ready for macro execution.</div>
+    </div>
+
+    <script type="module">
+        import forge from '/@forge/bridge';
+
+        // 1. Pandas Handling
+        document.getElementById('btn-pandas').onclick = async () => {
+            const out = document.getElementById('out-pandas');
+            out.innerText = "Generating 50,000 rows in Python...";
+            
+            const start = performance.now();
+            const res = await forge.invoke('generate_market_data', { rows: 50000 });
+            
+            if (!res.ok) {
+                out.innerText = "Error: " + res.error;
+                return;
+            }
+
+            // High-speed fetch from Rust-mapped memory channel. No JSON parsing!
+            const reqStart = performance.now();
+            const memoryRes = await fetch(res.url);
+            const rawText = await memoryRes.text();
+            
+            out.innerText = `✅ Frame streamed instantly!\n` +
+                `Python generation: ${(reqStart - start).toFixed(1)}ms\n` + 
+                `UI Byte Transfer: ${(performance.now() - reqStart).toFixed(1)}ms\n` +
+                `Buffer URL: ${res.url}\n` +
+                `Sample data:\n${rawText.slice(0, 150)}...`;
+        };
+
+        // 2. LLaMA Output Handling
+        document.getElementById('btn-load-llm').onclick = async () => {
+            const path = document.getElementById('model-path').value;
+            if(!path) return alert("Enter path first!");
+            document.getElementById('out-llm').innerText = "Loading weights from disk... (will freeze backend momentarily)";
+            const res = await forge.invoke('load_llama_model', { path });
+            document.getElementById('out-llm').innerText = res.ok ? res.info : res.error;
+        };
+
+        document.getElementById('btn-chat').onclick = async () => {
+            const prompt = document.getElementById('chat-prompt').value;
+            const out = document.getElementById('out-llm');
+            out.innerText = "";
+            const channel_id = "llm_chat_1";
+            
+            // Listen to streaming chunks
+            forge.on(channel_id, (payload) => {
+                if (payload.type === 'chunk') {
+                    out.innerText += payload.text;
+                } else if (payload.type === 'error') {
+                    out.innerText += "\n[Error]: " + payload.error;
+                }
+            });
+
+            const res = await forge.invoke('chat_with_llama', { prompt, channel_id });
+            if (!res.ok) out.innerText = res.error;
+        };
+
+        // 3. Automation Macro
+        document.getElementById('btn-mouse').onclick = async () => {
+            const out = document.getElementById('out-mouse');
+            out.innerText = "Executing pyautogui macro safely...";
+            const res = await forge.invoke('record_mouse');
+            out.innerText = res.ok ? "✅ Mouse automation executed!" : "Error: " + res.error;
+        };
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "name": "@forgedesk/api",
-  "version": "2.0.2",
-  "description": "Typed JavaScript API bindings for Forge applications",
+  "version": "3.0.0",
+  "description": "Typed JavaScript API bindings for Forge desktop applications",
   "license": "MIT",
   "homepage": "https://forge-framework.dev",
   "repository": {
@@ -9,23 +9,66 @@
     "url": "https://github.com/swadhinbiswas/Forge.git",
     "directory": "packages/api"
   },
-  "bugs": {
-    "url": "https://github.com/swadhinbiswas/Forge/issues"
-  },
   "type": "module",
-  "main": "./index.js",
-  "types": "./index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "default": "./index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./window": {
+      "types": "./dist/window.d.ts",
+      "default": "./dist/window.js"
+    },
+    "./fs": {
+      "types": "./dist/fs.d.ts",
+      "default": "./dist/fs.js"
+    },
+    "./dialog": {
+      "types": "./dist/dialog.d.ts",
+      "default": "./dist/dialog.js"
+    },
+    "./clipboard": {
+      "types": "./dist/clipboard.d.ts",
+      "default": "./dist/clipboard.js"
+    },
+    "./shell": {
+      "types": "./dist/shell.d.ts",
+      "default": "./dist/shell.js"
+    },
+    "./menu": {
+      "types": "./dist/menu.d.ts",
+      "default": "./dist/menu.js"
+    },
+    "./tray": {
+      "types": "./dist/tray.d.ts",
+      "default": "./dist/tray.js"
+    },
+    "./notifications": {
+      "types": "./dist/notifications.d.ts",
+      "default": "./dist/notifications.js"
+    },
+    "./updater": {
+      "types": "./dist/updater.d.ts",
+      "default": "./dist/updater.js"
+    },
+    "./app": {
+      "types": "./dist/app.d.ts",
+      "default": "./dist/app.js"
     }
   },
   "files": [
-    "index.js",
-    "index.d.ts",
+    "dist",
     "README.md"
   ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -33,6 +76,8 @@
     "forge",
     "desktop",
     "ipc",
-    "webview"
+    "webview",
+    "python",
+    "tauri-alternative"
   ]
 }

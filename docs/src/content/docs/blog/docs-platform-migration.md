@@ -1,6 +1,7 @@
 ---
 title: Docs Platform Migration to Astro Starlight
 description: ForgeDesk docs now run on Astro Starlight for Cloudflare Pages deployment.
+date: 2026-04-10
 ---
 
 We migrated the ForgeDesk docs portal to Astro Starlight.

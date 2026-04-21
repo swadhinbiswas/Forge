@@ -40,6 +40,7 @@ pub struct NativeWindow {
     x: Option<f64>,
     y: Option<f64>,
     vibrancy: Option<String>,
+    close_to_tray: bool,
     ipc_callback: Option<Py<PyAny>>,
     ready_callback: Option<Py<PyAny>>,
     window_event_callback: Option<Py<PyAny>>,
@@ -63,6 +64,7 @@ impl NativeWindow {
         x = None,
         y = None,
         vibrancy = None,
+        close_to_tray = false,
     ))]
     fn new(
         title: String,
@@ -79,6 +81,7 @@ impl NativeWindow {
         x: Option<f64>,
         y: Option<f64>,
         vibrancy: Option<String>,
+        close_to_tray: bool,
     ) -> Self {
         NativeWindow {
             title,
@@ -95,6 +98,7 @@ impl NativeWindow {
             x,
             y,
             vibrancy,
+            close_to_tray,
             ipc_callback: None,
             ready_callback: None,
             window_event_callback: None,
@@ -224,6 +228,7 @@ impl NativeWindow {
         let main_always_on_top = slf.always_on_top;
         let main_min_width = slf.min_width;
         let main_min_height = slf.min_height;
+        let main_close_to_tray = slf.close_to_tray;
 
         // Drop the mutable borrow on NativeWindow before entering the event loop.
         // From here on, all communication goes through WindowProxy / EventLoopProxy.
@@ -323,6 +328,17 @@ impl NativeWindow {
         let mut hotkey_id_to_string: std::collections::HashMap<u32, String> =
             std::collections::HashMap::new();
 
+        // ─── NATIVE MENU (macOS / Windows via muda) ───
+        #[cfg(not(target_os = "linux"))]
+        let menu_event_receiver = muda::MenuEvent::receiver().clone();
+        // Reverse map: muda MenuId string → user-provided id
+        #[cfg(not(target_os = "linux"))]
+        let mut menu_id_reverse: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        // The active muda::Menu instance (kept alive so items render)
+        #[cfg(not(target_os = "linux"))]
+        let mut active_muda_menu: Option<muda::Menu> = None;
+
         // ─── EVENT LOOP ───
         event_loop.run(move |event, target, control_flow| {
             *control_flow = ControlFlow::Wait;
@@ -340,6 +356,23 @@ impl NativeWindow {
                             }),
                         );
                     }
+                }
+            }
+
+            // Check muda menu events (macOS / Windows)
+            #[cfg(not(target_os = "linux"))]
+            if let Ok(menu_event) = menu_event_receiver.try_recv() {
+                let muda_id_str = menu_event.id().0.clone();
+                if let Some(user_id) = menu_id_reverse.get(&muda_id_str) {
+                    emit_window_event(
+                        &window_event_cb,
+                        "menu_selected",
+                        "main",
+                        serde_json::json!({
+                            "id": user_id,
+                            "muda_id": muda_id_str,
+                        }),
+                    );
                 }
             }
 
@@ -523,12 +556,65 @@ impl NativeWindow {
                     }
                     #[cfg(not(target_os = "linux"))]
                     {
-                        emit_window_event(
-                            &window_event_cb,
-                            "menu_unsupported",
-                            "main",
-                            serde_json::json!({ "platform": std::env::consts::OS }),
-                        );
+                        // Parse menu JSON into NativeMenuItem descriptors
+                        match serde_json::from_str::<Vec<crate::menu::NativeMenuItem>>(&menu_json) {
+                            Ok(items) => {
+                                // Build a fresh muda::Menu
+                                let new_menu = muda::Menu::new();
+                                let mut new_reverse: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+
+                                for item in &items {
+                                    if let Err(e) = build_muda_submenu(&new_menu, item, &mut new_reverse) {
+                                        emit_window_event(
+                                            &window_event_cb,
+                                            "menu_error",
+                                            "main",
+                                            serde_json::json!({ "error": e }),
+                                        );
+                                    }
+                                }
+
+                                // Attach to main window (platform-specific)
+                                #[cfg(target_os = "macos")]
+                                {
+                                    if let Some(ref old_menu) = active_muda_menu {
+                                        let _ = old_menu.remove_for_nsapp();
+                                    }
+                                    let _ = new_menu.init_for_nsapp();
+                                }
+                                #[cfg(target_os = "windows")]
+                                {
+                                    if let Some(main_id) = labels_to_id.get("main") {
+                                        if let Some(runtime_window) = windows_by_id.get(main_id) {
+                                            use tao::platform::windows::WindowExtWindows;
+                                            let hwnd = runtime_window.window.hwnd() as isize;
+                                            if let Some(ref old_menu) = active_muda_menu {
+                                                let _ = old_menu.remove_for_hwnd(hwnd);
+                                            }
+                                            let _ = new_menu.init_for_hwnd(hwnd);
+                                        }
+                                    }
+                                }
+
+                                menu_id_reverse = new_reverse;
+                                active_muda_menu = Some(new_menu);
+
+                                emit_window_event(
+                                    &window_event_cb,
+                                    "menu_updated",
+                                    "main",
+                                    serde_json::json!({ "count": items.len() }),
+                                );
+                            }
+                            Err(e) => {
+                                emit_window_event(
+                                    &window_event_cb,
+                                    "menu_error",
+                                    "main",
+                                    serde_json::json!({ "error": format!("Invalid menu JSON: {}", e) }),
+                                );
+                            }
+                        }
                     }
                 }
                 Event::UserEvent(UserEvent::Focus(label)) => {
@@ -937,7 +1023,15 @@ impl NativeWindow {
                                     serde_json::Value::Null,
                                 );
                                 if label == "main" {
-                                    *control_flow = ControlFlow::Exit;
+                                    if main_close_to_tray {
+                                        if let Some(main_id) = labels_to_id.get("main") {
+                                            if let Some(runtime_window) = windows_by_id.get(main_id) {
+                                                runtime_window.window.set_visible(false);
+                                            }
+                                        }
+                                    } else {
+                                        *control_flow = ControlFlow::Exit;
+                                    }
                                 } else {
                                     labels_to_id.remove(&label);
                                     windows_by_id.remove(&window_id);
@@ -985,5 +1079,177 @@ impl NativeWindow {
                 _ => (),
             }
         });
+    }
+}
+
+// ─── Menu helpers for macOS / Windows ───
+
+/// Recursively build muda menu items from a NativeMenuItem descriptor.
+/// Inserts ID mappings into `reverse_map` for event dispatch.
+#[cfg(not(target_os = "linux"))]
+fn build_muda_submenu(
+    parent_menu: &muda::Menu,
+    item: &crate::menu::NativeMenuItem,
+    reverse_map: &mut std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    use muda::{Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, IsMenuItem};
+
+    if item.item_type == "separator" {
+        parent_menu
+            .append(&PredefinedMenuItem::separator())
+            .map_err(|e| format!("separator: {}", e))?;
+        return Ok(());
+    }
+
+    // If item has children, it's a submenu
+    if !item.submenu.is_empty() || item.item_type == "submenu" {
+        let label = item.label.as_deref().unwrap_or("Menu");
+        let submenu = Submenu::new(label, item.enabled);
+
+        if let Some(user_id) = &item.id {
+            reverse_map.insert(submenu.id().0.clone(), user_id.clone());
+        }
+
+        for child in &item.submenu {
+            build_muda_submenu_child(&submenu, child, reverse_map)?;
+        }
+
+        parent_menu
+            .append(&submenu)
+            .map_err(|e| format!("submenu '{}': {}", label, e))?;
+        return Ok(());
+    }
+
+    // Top-level standalone item
+    if item.checkable {
+        let label = item.label.as_deref().unwrap_or("");
+        let ci = CheckMenuItem::new(label, item.enabled, item.checked, None::<muda::accelerator::Accelerator>);
+        if let Some(user_id) = &item.id {
+            reverse_map.insert(ci.id().0.clone(), user_id.clone());
+        }
+        parent_menu
+            .append(&ci)
+            .map_err(|e| format!("check item: {}", e))?;
+    } else if let Some(role) = &item.role {
+        if let Some(predefined) = predefined_from_role(role) {
+            parent_menu
+                .append(&predefined)
+                .map_err(|e| format!("predefined: {}", e))?;
+        } else {
+            let label = item.label.as_deref().unwrap_or("");
+            let mi = MenuItem::new(label, item.enabled, None::<muda::accelerator::Accelerator>);
+            if let Some(user_id) = &item.id {
+                reverse_map.insert(mi.id().0.clone(), user_id.clone());
+            }
+            parent_menu
+                .append(&mi)
+                .map_err(|e| format!("item: {}", e))?;
+        }
+    } else {
+        let label = item.label.as_deref().unwrap_or("");
+        let mi = MenuItem::new(label, item.enabled, None::<muda::accelerator::Accelerator>);
+        if let Some(user_id) = &item.id {
+            reverse_map.insert(mi.id().0.clone(), user_id.clone());
+        }
+        parent_menu
+            .append(&mi)
+            .map_err(|e| format!("item: {}", e))?;
+    }
+
+    Ok(())
+}
+
+/// Recursively build children inside a muda::Submenu.
+#[cfg(not(target_os = "linux"))]
+fn build_muda_submenu_child(
+    parent: &muda::Submenu,
+    item: &crate::menu::NativeMenuItem,
+    reverse_map: &mut std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    use muda::{Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, IsMenuItem};
+
+    if item.item_type == "separator" {
+        parent
+            .append(&PredefinedMenuItem::separator())
+            .map_err(|e| format!("separator: {}", e))?;
+        return Ok(());
+    }
+
+    if !item.submenu.is_empty() || item.item_type == "submenu" {
+        let label = item.label.as_deref().unwrap_or("Submenu");
+        let nested = Submenu::new(label, item.enabled);
+        if let Some(user_id) = &item.id {
+            reverse_map.insert(nested.id().0.clone(), user_id.clone());
+        }
+        for child in &item.submenu {
+            build_muda_submenu_child(&nested, child, reverse_map)?;
+        }
+        parent
+            .append(&nested)
+            .map_err(|e| format!("nested submenu: {}", e))?;
+        return Ok(());
+    }
+
+    if item.checkable {
+        let label = item.label.as_deref().unwrap_or("");
+        let ci = CheckMenuItem::new(label, item.enabled, item.checked, None::<muda::accelerator::Accelerator>);
+        if let Some(user_id) = &item.id {
+            reverse_map.insert(ci.id().0.clone(), user_id.clone());
+        }
+        parent
+            .append(&ci)
+            .map_err(|e| format!("check item: {}", e))?;
+    } else if let Some(role) = &item.role {
+        if let Some(predefined) = predefined_from_role(role) {
+            parent
+                .append(&predefined)
+                .map_err(|e| format!("predefined: {}", e))?;
+        } else {
+            let label = item.label.as_deref().unwrap_or("");
+            let mi = MenuItem::new(label, item.enabled, None::<muda::accelerator::Accelerator>);
+            if let Some(user_id) = &item.id {
+                reverse_map.insert(mi.id().0.clone(), user_id.clone());
+            }
+            parent
+                .append(&mi)
+                .map_err(|e| format!("item: {}", e))?;
+        }
+    } else {
+        let label = item.label.as_deref().unwrap_or("");
+        let mi = MenuItem::new(label, item.enabled, None::<muda::accelerator::Accelerator>);
+        if let Some(user_id) = &item.id {
+            reverse_map.insert(mi.id().0.clone(), user_id.clone());
+        }
+        parent
+            .append(&mi)
+            .map_err(|e| format!("item: {}", e))?;
+    }
+
+    Ok(())
+}
+
+/// Map a role string to a predefined muda menu item.
+#[cfg(not(target_os = "linux"))]
+fn predefined_from_role(role: &str) -> Option<muda::PredefinedMenuItem> {
+    use muda::PredefinedMenuItem;
+    match role.to_lowercase().as_str() {
+        "separator" => Some(PredefinedMenuItem::separator()),
+        "copy" => Some(PredefinedMenuItem::copy(None)),
+        "cut" => Some(PredefinedMenuItem::cut(None)),
+        "paste" => Some(PredefinedMenuItem::paste(None)),
+        "selectall" | "select_all" => Some(PredefinedMenuItem::select_all(None)),
+        "undo" => Some(PredefinedMenuItem::undo(None)),
+        "redo" => Some(PredefinedMenuItem::redo(None)),
+        "minimize" => Some(PredefinedMenuItem::minimize(None)),
+        "maximize" => Some(PredefinedMenuItem::maximize(None)),
+        "hide" => Some(PredefinedMenuItem::hide(None)),
+        "hideothers" | "hide_others" => Some(PredefinedMenuItem::hide_others(None)),
+        "showall" | "show_all" => Some(PredefinedMenuItem::show_all(None)),
+        "fullscreen" => Some(PredefinedMenuItem::fullscreen(None)),
+        "quit" => Some(PredefinedMenuItem::quit(None)),
+        "about" => Some(PredefinedMenuItem::about(None, Default::default())),
+        "closewindow" | "close_window" => Some(PredefinedMenuItem::close_window(None)),
+        "services" => Some(PredefinedMenuItem::services(None)),
+        _ => None,
     }
 }

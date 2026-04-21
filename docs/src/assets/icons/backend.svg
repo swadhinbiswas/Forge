@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="back-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <filter id="back-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Animated network lines -->
+  <g stroke="url(#back-grad)" stroke-width="2" stroke-dasharray="4 4" fill="none" opacity="0.6">
+    <path d="M50 20 L50 80">
+      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="4s" repeatCount="indefinite" />
+    </path>
+    <path d="M20 50 L80 50">
+      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="4s" repeatCount="indefinite" />
+    </path>
+    <path d="M25 25 L75 75">
+      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="4s" repeatCount="indefinite" />
+    </path>
+    <path d="M75 25 L25 75">
+      <animate attributeName="stroke-dashoffset" from="100" to="0" dur="4s" repeatCount="indefinite" />
+    </path>
+  </g>
+
+  <!-- Python-like interlocking squares / Data nodes -->
+  <g transform="translate(50, 50)" filter="url(#back-glow)">
+    <!-- Spinning Center -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="15s" repeatCount="indefinite" />
+      <rect x="-24" y="-24" width="28" height="28" rx="6" fill="#fbbf24" opacity="0.9" />
+      <rect x="-4" y="-4" width="28" height="28" rx="6" fill="#10b981" opacity="0.9" />
+      
+      <circle cx="-10" cy="-10" r="4" fill="#ffffff" />
+      <circle cx="10" cy="10" r="4" fill="#ffffff" />
+    </g>
+
+    <!-- Pulsing Outer Nodes -->
+    <circle cx="0" cy="-40" r="4" fill="#10b981">
+      <animate attributeName="r" values="3; 6; 3" dur="2s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="0" cy="40" r="4" fill="#fbbf24">
+      <animate attributeName="r" values="3; 6; 3" dur="2s" begin="1s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="-40" cy="0" r="4" fill="#10b981">
+      <animate attributeName="r" values="3; 6; 3" dur="2s" begin="0.5s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="40" cy="0" r="4" fill="#fbbf24">
+      <animate attributeName="r" values="3; 6; 3" dur="2s" begin="1.5s" repeatCount="indefinite" />
+    </circle>
+  </g>
+</svg>

@@ -98,8 +98,9 @@ class ScopeValidator:
             if self._matches(resolved, deny_pat):
                 return False
 
-        # Step 2: If no allow patterns are defined, allow everything
-        # (the caller is relying on capability-level permission only)
+        # Step 2: If no allow patterns are defined and there ARE deny patterns,
+        # we only deny the specific paths. If NEITHER are defined, everything is allowed.
+        # This matches the expected "open by default until restricted" behavior.
         if not self._allow_expanded:
             return True
 
@@ -128,7 +129,7 @@ class ScopeValidator:
             if fnmatch.fnmatch(url, deny_pat):
                 return False
 
-        # Step 2: If no allow patterns, allow everything
+        # Step 2: If no allow patterns, we only filter by deny rules (fail open)
         if not self._allow_expanded:
             return True
 
@@ -180,3 +181,22 @@ class ScopeValidator:
 
         # Standard fnmatch
         return fnmatch.fnmatch(resolved_path, pattern_clean)
+
+
+# Global registry for the Asset Protocol interceptor (called from Rust via PyO3)
+_asset_validator: ScopeValidator | None = None
+
+def _register_asset_validator(validator: ScopeValidator) -> None:
+    """Internal: Set the global asset scope validator for Rust."""
+    global _asset_validator
+    _asset_validator = validator
+
+def _validate_asset_path(path: str) -> bool:
+    """Internal: Check if a path is allowed by the global asset scope.
+    Used by the Rust WRY custom protocol interceptor (`forge-asset://`).
+    """
+    global _asset_validator
+    if _asset_validator is not None:
+        return _asset_validator.is_path_allowed(path)
+    # If no validator is registered yet, fail closed for security
+    return False

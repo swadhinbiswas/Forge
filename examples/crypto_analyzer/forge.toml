@@ -1,0 +1,21 @@
+[app]
+name = "crypto_analyzer"
+version = "0.1.0"
+description = "A production-grade crypto market analysis tool"
+
+[window]
+title = "Crypto Analyzer"
+width = 1200
+height = 800
+min_width = 800
+min_height = 600
+
+[build]
+entry = "src/main.py"
+output_dir = "dist"
+
+[dev]
+frontend_dir = "src"
+port = 5205
+dev_server_command = "npm run dev"
+dev_server_url = "http://127.0.0.1:5205"

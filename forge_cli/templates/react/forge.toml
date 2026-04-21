@@ -36,4 +36,4 @@ system_tray = false
 [tool.forge_template]
 name = "react"
 schema_version = 1
-forge_version_range = ">=2.0.0,<3.0.0"
+forge_version_range = ">=3.0.0,<4.0.0"

@@ -6,25 +6,7 @@ Forge is a "Tauri for Python" framework. It bridges web technologies (HTML/CSS/J
 
 ## Layer Overview
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend (JS/TS)                      │
-│  React / Vue / Svelte / Plain HTML+CSS+JS               │
-│  @forgedesk/api ─── invoke("cmd", args) ─── on("event")    │
-├─────────────────────────────────────────────────────────┤
-│                    IPC Bridge (Python)                    │
-│  forge/bridge.py ─── JSON messages ─── Thread pool      │
-│  Strict Pydantic Validation │ Scoped Capability Checks │
-├─────────────────────────────────────────────────────────┤
-│                    Runtime (Python)                       │
-│  forge/app.py ─── ForgeApp ─── API modules              │
-│  State │ Events │ Plugins │ Config │ Lifecycle           │
-├─────────────────────────────────────────────────────────┤
-│                    Native Core (Rust)                     │
-│  src/native_window.rs ─── src/window/mod.rs              │
-│  Wry / Tao WebView │ Multi-Window Registry │ GUI (muda) │
-└─────────────────────────────────────────────────────────┘
-```
+![Forge Architecture Overview](../../assets/layer-overview.svg)
 
 ## 1. Native Core (Rust)
 The lowest layer handles tight OS integration, bypassing massive UI bloat frameworks (like Electron/CEF).
@@ -41,3 +23,13 @@ Because Forge uses **Python 3.14+ Free-Threading**, it removes the typical async
 Commands traverse from JS to Python through a tightly guarded bridge:
 - Signatures derived via Python 3.14 type hints (`typing.get_type_hints`) instantly synthesize into exact **Pydantic schemas**.
 - Unexpected kwargs, un-allowed execution scopes, or spoofed commands are rejected *before* Python evaluates the core function payload.
+
+## 4. Zero-Copy Architecture (forge-memory:// and forge-asset://)
+
+Unlike Electron, which streams large files via asynchronous websockets causing heavy JSON serialization/deserialization overhead, Forge implements a strict Zero-Copy Architecture routing through custom network HTTP schemes:
+- **`forge-asset://`**: A secure local file protocol allowing the frontend to natively fetch local paths (`fetch('forge-asset://PATH')`) bypassing the serialization layer. This is strictly gated by the Python backend's `ScopeValidator` synchronizing path authorization between Rust and Python safely using PyO3 `Python::attach`.
+- **`forge-memory://`**: A memory pointer protocol passing raw byte payloads between Python (`forge.memory.buffers`) and Rust cleanly over WebKit/WebView2 URL fetch interception with near-zero copy overhead.
+
+## 5. Strict Permission Scopes
+
+Capabilities are not just booleans—they are locked down to exact filesystem patterns (`allow` / `deny`), exact origins, and URL scopes in `forge.toml`. The `app.fs` and `app.shell` modules validate against matching globs (like `$APPDATA/my-app/**`) directly within the IPC Bridge before any system IO operates.

@@ -40,5 +40,10 @@ fn forge_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SingleInstanceGuard>()?;
     m.add_class::<AutoLaunchManager>()?;
     m.add_class::<KeychainManager>()?;
+    m.add_class::<platform::clipboard::ClipboardManager>()?;
+    m.add_class::<platform::notification::NotificationManager>()?;
+    m.add_class::<platform::dialog::DialogManager>()?;
+    m.add_class::<platform::menu::MenuManager>()?;
+    m.add_class::<platform::tray::TrayManager>()?;
     Ok(())
 }
