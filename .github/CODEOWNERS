@@ -1,0 +1,36 @@
+# ============================================================
+# CODEOWNERS - Automatic review assignment
+# ============================================================
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+# ============================================================
+
+# Default: require review from core maintainers
+* @forgedesk/core
+
+# Rust core - require Rust team review
+src/ @forgedesk/rust @forgedesk/core
+Cargo.toml @forgedesk/rust @forgedesk/core
+
+# Python framework - require Python team review
+forge/ @forgedesk/python @forgedesk/core
+pyproject.toml @forgedesk/python @forgedesk/core
+tests/ @forgedesk/python @forgedesk/core
+
+# CLI tools
+forge_cli/ @forgedesk/python @forgedesk/core
+
+# NPM packages - require Frontend team review
+packages/ @forgedesk/frontend @forgedesk/core
+package.json @forgedesk/frontend @forgedesk/core
+
+# CI/CD - require DevOps review
+.github/ @forgedesk/devops @forgedesk/core
+scripts/ @forgedesk/devops @forgedesk/core
+
+# Documentation - require Docs team review
+docs/ @forgedesk/docs
+*.md @forgedesk/docs
+
+# Security-sensitive files - require security team review
+SECURITY.md @forgedesk/security @forgedesk/core
+.github/workflows/publish*.yml @forgedesk/security @forgedesk/devops

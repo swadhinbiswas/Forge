@@ -1,0 +1,58 @@
+name: Feature Request
+description: Suggest a new feature for ForgeDesk
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please fill out the form below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A clear description of the feature
+      placeholder: Describe the feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Why is this feature needed?
+      placeholder: Describe the use case...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How should this be implemented?
+      placeholder: Describe your proposed solution...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Other approaches you've considered
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Python Framework
+        - Rust Core
+        - CLI Tools
+        - NPM Packages
+        - Documentation
+        - Other
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information

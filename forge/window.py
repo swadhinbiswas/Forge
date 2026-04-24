@@ -420,7 +420,7 @@ class WindowManagerAPI:
         window_state = getattr(self._app, "window_state", None)
         if window_state is not None:
             window_state.try_hydrate_descriptor(descriptor)
-            
+
         self._windows[normalized_label] = descriptor
         if descriptor["backend"] == "native":
             try:

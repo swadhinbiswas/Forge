@@ -52,7 +52,7 @@ class ShortcutsAPI:
         """Register a shortcut natively for the JS frontend."""
         def proxy_callback() -> None:
             self._app.events.emit("shortcut:triggered", {"accelerator": accelerator})
-        
+
         return self.register(accelerator, proxy_callback)
 
     def unregister(self, accelerator: str) -> bool:

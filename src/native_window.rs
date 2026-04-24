@@ -978,6 +978,25 @@ impl NativeWindow {
                         }
                     });
                 }
+                Event::UserEvent(UserEvent::ApplyDeltaUpdate(
+                    patch_url,
+                    old_hash,
+                    new_hash,
+                    sig,
+                    pubkey,
+                    tx,
+                )) => {
+                    std::thread::spawn(move || {
+                        if let Err(e) = crate::updater::apply_delta_update(
+                            patch_url, old_hash, new_hash, sig, pubkey,
+                        ) {
+                            eprintln!("[forge-core] ApplyDeltaUpdate failed: {}", e);
+                            let _ = tx.send(false);
+                        } else {
+                            let _ = tx.send(true);
+                        }
+                    });
+                }
                 Event::WindowEvent {
                     event, window_id, ..
                 } => {
@@ -1092,7 +1111,7 @@ fn build_muda_submenu(
     item: &crate::menu::NativeMenuItem,
     reverse_map: &mut std::collections::HashMap<String, String>,
 ) -> Result<(), String> {
-    use muda::{Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, IsMenuItem};
+    use muda::{CheckMenuItem, IsMenuItem, MenuItem, PredefinedMenuItem, Submenu};
 
     if item.item_type == "separator" {
         parent_menu
@@ -1123,7 +1142,12 @@ fn build_muda_submenu(
     // Top-level standalone item
     if item.checkable {
         let label = item.label.as_deref().unwrap_or("");
-        let ci = CheckMenuItem::new(label, item.enabled, item.checked, None::<muda::accelerator::Accelerator>);
+        let ci = CheckMenuItem::new(
+            label,
+            item.enabled,
+            item.checked,
+            None::<muda::accelerator::Accelerator>,
+        );
         if let Some(user_id) = &item.id {
             reverse_map.insert(ci.id().0.clone(), user_id.clone());
         }
@@ -1166,7 +1190,7 @@ fn build_muda_submenu_child(
     item: &crate::menu::NativeMenuItem,
     reverse_map: &mut std::collections::HashMap<String, String>,
 ) -> Result<(), String> {
-    use muda::{Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, IsMenuItem};
+    use muda::{CheckMenuItem, IsMenuItem, MenuItem, PredefinedMenuItem, Submenu};
 
     if item.item_type == "separator" {
         parent
@@ -1192,7 +1216,12 @@ fn build_muda_submenu_child(
 
     if item.checkable {
         let label = item.label.as_deref().unwrap_or("");
-        let ci = CheckMenuItem::new(label, item.enabled, item.checked, None::<muda::accelerator::Accelerator>);
+        let ci = CheckMenuItem::new(
+            label,
+            item.enabled,
+            item.checked,
+            None::<muda::accelerator::Accelerator>,
+        );
         if let Some(user_id) = &item.id {
             reverse_map.insert(ci.id().0.clone(), user_id.clone());
         }
@@ -1210,9 +1239,7 @@ fn build_muda_submenu_child(
             if let Some(user_id) = &item.id {
                 reverse_map.insert(mi.id().0.clone(), user_id.clone());
             }
-            parent
-                .append(&mi)
-                .map_err(|e| format!("item: {}", e))?;
+            parent.append(&mi).map_err(|e| format!("item: {}", e))?;
         }
     } else {
         let label = item.label.as_deref().unwrap_or("");
@@ -1220,9 +1247,7 @@ fn build_muda_submenu_child(
         if let Some(user_id) = &item.id {
             reverse_map.insert(mi.id().0.clone(), user_id.clone());
         }
-        parent
-            .append(&mi)
-            .map_err(|e| format!("item: {}", e))?;
+        parent.append(&mi).map_err(|e| format!("item: {}", e))?;
     }
 
     Ok(())

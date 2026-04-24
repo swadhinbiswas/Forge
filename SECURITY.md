@@ -3,24 +3,46 @@
 ## Supported Versions
 
 | Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
+|---------|--------------------|
+| 3.0.x   | ✅ Active support  |
+| 2.x.x   | ⚠️ Security fixes only |
+| < 2.0   | ❌ End of life     |
 
 ## Reporting a Vulnerability
 
-We take the security of Forge seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+**⚠️ DO NOT create a public GitHub issue for security vulnerabilities.**
 
-**Please do NOT report security vulnerabilities through public GitHub issues.**
+### How to Report
 
-Instead, please report them via email to: security@forge-framework.dev (placeholder)
+1. **Email:** security@forgedesk.eu.cc
+2. **Subject:** `[SECURITY] Brief description`
+3. **PGP Key:** Available at [keys.forgedesk.eu.cc/security.asc](https://keys.forgedesk.eu.cc/security.asc)
 
-You should receive a response within 48 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+### What to Include
 
-After the initial reply to your report, we will send you a more detailed response indicating the next steps in handling your report. After the initial reply, we will keep you informed of the progress toward a fix and full announcement, and may ask for additional information or guidance.
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact assessment
+- Suggested fix (if any)
 
-## Security Best Practices
+### Response Timeline
 
-When building applications with Forge, follow these security best practices:
+| Stage | Timeline |
+|-------|----------|
+| Initial acknowledgment | Within 24 hours |
+| Triage and assessment | Within 72 hours |
+| Fix development | Within 7 days (critical), 30 days (other) |
+| Public disclosure | After fix is released |
+
+### Disclosure Policy
+
+- We follow **Coordinated Disclosure** principles
+- We will credit reporters in release notes (unless anonymity is requested)
+- We request a **90-day disclosure window** from initial report
+
+## Security Features
+
+ForgeDesk includes multiple security layers:
 
 ### 1. Command Name Validation
 
@@ -43,18 +65,23 @@ The File System API includes multiple security layers:
 - **Null Byte Rejection**: Paths containing null bytes are rejected
 - **Symlink Resolution**: Symlinks are resolved and validated
 - **Size Limits**: File reads have default size limits to prevent DoS
+- **Scope Validation**: Glob-based allow/deny patterns
 
 ```python
 # Secure file operations - paths are validated
-from forge.api.fs import FileSystemAPI
+from forge.scope import ScopeValidator
 
-fs = FileSystemAPI(base_path=app_dir)
+validator = ScopeValidator(
+    allow_patterns=["/home/user/appdata/**"],
+    deny_patterns=["/home/user/appdata/secrets/**"]
+)
 
-# This will raise ValueError if path is outside allowed directories
-content = fs.read("../../../etc/passwd")  # BLOCKED
+# This will be denied
+validator.is_path_allowed("/etc/passwd")  # False
+validator.is_path_allowed("/home/user/appdata/secrets/key.pem")  # False
 ```
 
-### 3. Input Validation
+### 3. IPC Security
 
 All inputs from JavaScript are validated:
 
@@ -62,8 +89,28 @@ All inputs from JavaScript are validated:
 - Argument types are checked
 - Request size is limited (10MB default)
 - Error messages are sanitized to prevent information leakage
+- Command injection prevention
 
-### 4. XSS Prevention
+### 4. Capability System
+
+```toml
+[permissions]
+filesystem = true   # Enable/disable API access
+shell = false       # Deny shell execution
+clipboard = true    # Allow clipboard access
+keychain = false    # Deny secure storage
+dialogs = true      # Allow native dialogs
+notifications = true # Allow notifications
+```
+
+### 5. Update Security
+
+- Ed25519 signature verification for all updates
+- SHA-256 checksums for all release artifacts
+- Delta update integrity checks
+- Certificate pinning support
+
+### 6. XSS Prevention
 
 Event data emitted from Python to JavaScript is properly escaped:
 
@@ -77,36 +124,14 @@ window.__forge__.on("user_data", (data) => {
 });
 ```
 
-### 5. Error Handling
+## Security Best Practices for Users
 
-Errors are handled securely:
-
-- Stack traces are not exposed to JavaScript
-- File paths are redacted from error messages
-- Error message length is limited
-
-### 6. Permission System
-
-Forge includes a permission system in `forge.toml`:
-
-```toml
-[permissions]
-filesystem = true    # Enable file system API
-clipboard = true     # Enable clipboard API
-dialogs = true       # Enable dialog API
-system_tray = false  # Disable system tray API
-```
-
-Disable APIs you don't need when creating your ForgeApp:
-
-```python
-app = ForgeApp(
-    enable_fs_api=False,
-    enable_clipboard_api=True,
-    enable_dialog_api=True,
-    enable_system_api=True,
-)
-```
+1. **Always enable scope validation** for file system access
+2. **Disable shell access** unless absolutely necessary
+3. **Use keychain** for storing secrets (never hardcode)
+4. **Validate all IPC inputs** in command handlers
+5. **Keep ForgeDesk updated** to receive security patches
+6. **Review permissions** in forge.toml before deployment
 
 ## Security Checklist for Forge Apps
 
@@ -118,44 +143,30 @@ When building a Forge application, review this checklist:
 - [ ] Limit file read sizes to prevent DoS
 - [ ] Don't expose sensitive system commands via IPC
 - [ ] Use HTTPS for any network requests
-- [ ] Store secrets in environment variables, not code
+- [ ] Store secrets in environment variables or keychain
 - [ ] Keep dependencies updated
 - [ ] Review and test file access permissions
 - [ ] Implement rate limiting for commands if needed
 
 ## Known Limitations
 
-1. **WebView Security**: Forge uses the system's native webview. Security depends on the OS webview implementation (WKWebView, WebView2, WebKitGTK).
+1. **WebView Security**: ForgeDesk uses the system's native webview. Security depends on the OS webview implementation (WKWebView, WebView2, WebKitGTK).
 
-2. **Local File Access**: By design, Forge apps can access local files. Always validate file paths and use the permission system.
+2. **Local File Access**: By design, ForgeDesk apps can access local files. Always validate file paths and use the permission system.
 
 3. **JavaScript Injection**: The `window.__forge__` API is injected into the webview. Ensure your frontend code doesn't inadvertently expose this to untrusted content.
 
 ## Security Updates
 
-Security updates will be released as patch versions (e.g., 1.0.1, 1.0.2). Critical security fixes may be released outside the normal release cycle.
+Security updates will be released as patch versions (e.g., 3.0.1, 3.0.2). Critical security fixes may be released outside the normal release cycle.
 
 To stay updated:
 - Watch the GitHub repository for security advisories
 - Subscribe to the security mailing list
 - Check the CHANGELOG.md for security-related updates
 
-## Security Audit History
-
-| Date | Version | Finding | Status |
-|------|---------|---------|--------|
-| 2024-01-01 | 1.0.0 | Initial security review | Complete |
-
-## Third-Party Dependencies
-
-Forge depends on the following third-party libraries. Review their security policies:
-
-- [pywebview](https://pywebview.flowrl.com/) - WebView binding
-- [typer](https://typer.tiangolo.com/) - CLI framework
-- [rich](https://rich.readthedocs.io/) - Terminal formatting
-
 ## Contact
 
-For security-related questions not covered by this policy, contact:
-- Email: security@forge-framework.dev (placeholder)
-- GitHub: @forge-framework (placeholder)
+- **Security Email:** security@forgedesk.eu.cc
+- **General Contact:** hello@forgedesk.eu.cc
+- **PGP Key:** [keys.forgedesk.eu.cc/security.asc](https://keys.forgedesk.eu.cc/security.asc)

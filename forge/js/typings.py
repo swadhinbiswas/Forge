@@ -9,7 +9,7 @@ seamlessly fully-typed client development (similar to tauri-apps/api).
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, Dict, List, Type, get_origin, get_args
+from typing import Any, Callable, Dict, List, get_origin, get_args
 
 try:
     from typing import get_type_hints
@@ -76,16 +76,16 @@ class TypeGenerator:
         try:
             hints = get_type_hints(func) if get_type_hints else {}
             sig = inspect.signature(func)
-            
+
             # Extract arguments
             ts_params = []
             for name, param in sig.parameters.items():
                 if name == "self":
                     continue
-                
+
                 param_type = hints.get(name, param.annotation)
                 ts_type = self._resolve_ts_type(param_type)
-                
+
                 is_optional = param.default != inspect.Parameter.empty
                 ts_name = f"{name}?" if is_optional else name
                 ts_params.append(f"{ts_name}: {ts_type}")
@@ -103,7 +103,7 @@ class TypeGenerator:
             return (
                 f"    invoke(command: '{cmd_name}', args: {args_type}, meta?: Record<string, any>): Promise<{ts_return}>;"
             )
-        except Exception as e:
+        except Exception:
             # Safe boundary fallback for un-parseable functions (like C extensions or bad hints)
             return f"    invoke(command: '{cmd_name}', args?: Record<string, any>, meta?: Record<string, any>): Promise<any>; // Fallback due to parse error"
 

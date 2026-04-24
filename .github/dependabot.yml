@@ -1,0 +1,155 @@
+# ============================================================
+# Dependabot Configuration
+# ============================================================
+# Automated dependency updates for all package ecosystems.
+# Docs: https://docs.github.com/en/code-security/dependabot
+# ============================================================
+
+version: 2
+
+updates:
+  # ──────────────────────────────────────────────────────────
+  # Python (pip/uv) dependencies
+  # ──────────────────────────────────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "forgedesk/python"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    groups:
+      python-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ──────────────────────────────────────────────────────────
+  # Rust (Cargo) dependencies
+  # ──────────────────────────────────────────────────────────
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "forgedesk/rust"
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    groups:
+      rust-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ──────────────────────────────────────────────────────────
+  # Node.js (npm) dependencies - Root
+  # ──────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "forgedesk/frontend"
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    groups:
+      npm-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ──────────────────────────────────────────────────────────
+  # Node.js (npm) dependencies - packages/api
+  # ──────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/packages/api"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "forgedesk/frontend"
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "api"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # ──────────────────────────────────────────────────────────
+  # Node.js (npm) dependencies - packages/vite-plugin
+  # ──────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/packages/vite-plugin"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "forgedesk/frontend"
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "vite"
+    commit-message:
+      prefix: "chore(deps):"
+
+  # ──────────────────────────────────────────────────────────
+  # GitHub Actions
+  # ──────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "forgedesk/devops"
+    labels:
+      - "dependencies"
+      - "ci"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(deps):"
+
+  # ──────────────────────────────────────────────────────────
+  # Docker (if applicable)
+  # ──────────────────────────────────────────────────────────
+  # - package-ecosystem: "docker"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"
+  #   labels:
+  #     - "dependencies"
+  #     - "docker"

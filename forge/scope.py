@@ -19,7 +19,6 @@ import os
 import sys
 from pathlib import Path
 from typing import Sequence
-from urllib.parse import urlparse
 
 
 def expand_scope_path(pattern: str, base_dir: Path | None = None) -> str:

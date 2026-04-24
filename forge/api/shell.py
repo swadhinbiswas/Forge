@@ -62,7 +62,7 @@ class ShellAPI:
         if self._permissions is True:
             # If globally allowed without strict lists
             return True
-        
+
         # Check deny_execute first — deny always wins
         deny_list = getattr(self._permissions, 'deny_execute', [])
         if command in deny_list:
@@ -81,13 +81,13 @@ class ShellAPI:
     def _get_sidecar_path(self, name: str) -> Path:
         if not self._is_sidecar_allowed(name):
             raise PermissionError(f"Execution of sidecar '{name}' is not allowed by shell permissions policy.")
-        
+
         ext = ".exe" if sys.platform == "win32" else ""
         sidecar_path = self._base_dir / "bin" / f"{name}{ext}"
-        
+
         if not sidecar_path.exists():
             raise FileNotFoundError(f"Sidecar binary '{name}' not found at {sidecar_path}")
-        
+
         return sidecar_path
 
     @command("shell_sidecar")
@@ -97,7 +97,7 @@ class ShellAPI:
         """
         args = args or []
         sidecar_path = self._get_sidecar_path(name)
-            
+
         cmd_list = [str(sidecar_path)] + args
         try:
             result = subprocess.run(
@@ -122,7 +122,7 @@ class ShellAPI:
         """
         if not self._is_allowed(command_name):
             raise PermissionError(f"Execution of '{command_name}' is not allowed by shell permissions policy.")
-        
+
         args = args or []
         cmd_list = [command_name] + args
         try:
@@ -153,22 +153,22 @@ class ShellAPI:
                 bufsize=1
             )
             pid = process.pid
-            
+
             def emit_stdout(line):
-                self._app.events.emit(f"shell:stdout", {"pid": pid, "data": line})
-                
+                self._app.events.emit("shell:stdout", {"pid": pid, "data": line})
+
             def emit_stderr(line):
-                self._app.events.emit(f"shell:stderr", {"pid": pid, "data": line})
-                
+                self._app.events.emit("shell:stderr", {"pid": pid, "data": line})
+
             threading.Thread(target=_read_stream, args=(process.stdout, emit_stdout), daemon=True).start()
             threading.Thread(target=_read_stream, args=(process.stderr, emit_stderr), daemon=True).start()
-            
+
             def wait_for_exit():
                 process.wait()
-                self._app.events.emit(f"shell:exit", {"pid": pid, "code": process.returncode})
-                
+                self._app.events.emit("shell:exit", {"pid": pid, "code": process.returncode})
+
             threading.Thread(target=wait_for_exit, daemon=True).start()
-            
+
             return {"pid": pid}
         except Exception as e:
             logger.error(f"Failed to spawn process {cmd_list}: {e}")
@@ -182,7 +182,7 @@ class ShellAPI:
         """
         if not self._is_allowed(command_name):
             raise PermissionError(f"Execution of '{command_name}' is not allowed by shell permissions policy.")
-        
+
         args = args or []
         return self._spawn_process([command_name] + args)
 

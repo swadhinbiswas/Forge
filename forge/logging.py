@@ -11,8 +11,6 @@ Provides a unified logging surface for the Forge framework with:
 from __future__ import annotations
 
 import json
-import os
-import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -199,7 +197,7 @@ class _ConsoleSink:
         source_style = _SOURCE_STYLE.get(entry.source, "white")
         icon = _LEVEL_ICON.get(entry.level.lower(), "•")
         label = _LEVEL_LABEL.get(entry.level.lower(), entry.level[:5])
-        
+
         # Parse time nicely
         time_str = entry.timestamp
         if "T" in time_str:
@@ -207,19 +205,19 @@ class _ConsoleSink:
             time_short = time_part.split("+")[0][:8]  # HH:MM:SS
         else:
             time_short = time_str
-            
+
         source_tag = f"\\[{entry.source}]"
-        
+
         log_line = (
             f"[{level_style}]{icon} {label}[/] "
             f"[dim]{time_short}[/] "
             f"[{source_style}]{source_tag}[/] "
             f"{entry.message}"
         )
-        
+
         # Render main line
         console.print(log_line)
-        
+
         # Render context beautifully if it exists
         if entry.context:
             from rich.pretty import Pretty

@@ -23,7 +23,7 @@ class DialogAPI:
     __forge_capability__ = "dialog"
 
     def __init__(self) -> None:
-        
+
         self._manager = DialogManager()
 
     @command("dialog_open")

@@ -439,7 +439,7 @@ class ForgeConfig:
         # Parse [permissions] section
         if "permissions" in data:
             perm_data = data["permissions"]
-            
+
             fs_val = perm_data.get("filesystem", True)
             if isinstance(fs_val, dict):
                 fs_perm = FileSystemPermissions(

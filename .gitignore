@@ -1,118 +1,418 @@
+# ============================================================
+# ForgeDesk .gitignore
+# ============================================================
+
 # ==========================
-# OS files
+# OS Files
 # ==========================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 *~
 *.swp
 *.swo
+*.vi
+*.bak
+*.tmp
+*.old
+*.orig
 
 # ==========================
 # Editor / IDE
 # ==========================
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.project
+.classpath
+.settings/
+*.iml
+*.iws
+*.ipr
+.atom/
+.brackets.json
+*.komodoproject
+.komodotools
+_nbproject/
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # ==========================
-# Environment variables
+# Environment Variables
 # ==========================
 .env
 .env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 !.env.example
+!.env.template
 
 # ==========================
 # Python
 # ==========================
+
+# Byte-compiled / optimized
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*$py.class
+
+# C extensions
 *.so
+*.dylib
+*.dll
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-wheel-metadata/
 
 # Virtual environments
 .venv/
 venv/
 env/
 ENV/
-
-# Python packaging
-build/
-dist/
-*.egg-info/
-.eggs/
+.conda/
+.conda-env/
 
 # Test / coverage
 .coverage
 .coverage.*
 htmlcov/
+.tox/
+.nox/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+.hypothesis/
+.pytest_cache/
+coverage/
+coverage.xml
+*.cover
+*.py,cover
+.coverage.*
 
-# Python tools
-pip-wheel-metadata/
+# Type checking
+.mypy_cache/
+.pytype/
+.dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+.pdm-python
+.pdm-build/
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder
+.spyderproject
+.spyproject
+
+# Rope
+.ropeproject
+
+# mkdocs
+/site
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# uv
+uv.lock
 
 # ==========================
 # Rust
 # ==========================
 target/
 **/*.rs.bk
+*.pdb
 
-# If library crate you may ignore Cargo.lock
-# If binary project you should commit Cargo.lock
-# Cargo.lock
-
-# ==========================
-# Logs
-# ==========================
-*.log
-logs/
+# Cargo
+Cargo.lock
 
 # ==========================
-# Temporary files
-# ==========================
-tmp/
-temp/
-*.tmp
-*.bak
-*.old
-
-# ==========================
-# Coverage / reports
-# ==========================
-coverage/
-*.lcov
-
-# ==========================
-# Misc
-# ==========================
-.cache/
-node_modules/
-*.tgz
-
-# ==========================
-# Node.js & Tooling
+# Node.js
 # ==========================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+.lerna-debug.log*
+
+# NPM
+.npm
+
+# Yarn
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/install-state.gz
+.pnp.*
+
+# PNPM
+pnpm-lock.yaml
 
 # ==========================
 # Frontend Frameworks
 # ==========================
-.svelte-kit/
-.nuxt/
+
+# Vite
+dist/
+dist-ssr/
+*.local
+
+# Next.js
 .next/
 out/
-.vercel
-.output
-dist-ssr/
-build/
+
+# Nuxt
+.nuxt/
 dist/
 
+# Svelte
+.svelte-kit/
+
+# Gatsby
+.cache/
+public
+
+# Astro
+dist/
+.tmp/
+
+# Vue
+*.local
+
+# Vercel
+.vercel
+.output
+
+# Netlify
+.netlify
+
 # ==========================
-# Forge Generated Apps
+# Build Tools
+# ==========================
+
+# Webpack
+dist/
+build/
+
+# Rollup
+dist/
+
+# Esbuild
+dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Babel
+.babel_cache/
+
+# ==========================
+# Testing
+# ==========================
+coverage/
+*.lcov
+.nyc_output/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+
+# ==========================
+# CI/CD
+# ==========================
+.github/workflows/*.log
+
+# ==========================
+# Security
+# ==========================
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# ==========================
+# Logs
+# ==========================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==========================
+# Temporary Files
+# ==========================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.rej
+
+# ==========================
+# Cache
+# ==========================
+.cache/
+.turbo/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+
+# ==========================
+# Database
+# ==========================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# ==========================
+# Uploads / Media
+# ==========================
+uploads/
+media/
+static/
+
+# ==========================
+# Documentation
+# ==========================
+site/
+_book/
+
+# ==========================
+# Miscellaneous
 # ==========================
 *.tgz
 *.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Nuitka
+*.build/
+*.dist/
+*.onefile-build/
+nuitka-crash-report.xml
+build-result.json
+build-exit-code.txt
+
+# PyInstaller
+*.spec
+
+# Installer files (keep only manifests)
+*.msi
+*.exe
+*.dmg
+*.app
+*.deb
+*.rpm
+*.AppImage
+*.flatpak
+
+# Crash reports
+crash_*.json
+*.crash
+
+# Forge specific
+.understand-anything/
+*.forge_cache
+
+# ==========================
+# Exceptions (keep these)
+# ==========================
+# !.gitignore
+# !.env.example
+# !.github/
+# !scripts/
+# !examples/
+# !tests/
+# !docs/
+# !src/
+# !forge/
+# !forge_cli/
+# !packages/
+# !branding/

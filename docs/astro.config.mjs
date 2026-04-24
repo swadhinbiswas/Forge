@@ -4,12 +4,12 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-        site: 'https://docs.forgedesk.dev',
+        site: 'https://docs.forgedesk.eu.cc',
         integrations: [
                 starlight({
                         title: 'ForgeDesk',
                         head: [
-                                { tag: 'link', attrs: { rel: 'alternate', type: 'application/rss+xml', title: 'ForgeDesk Blog', href: 'https://docs.forgedesk.dev/rss.xml' } }
+                                { tag: 'link', attrs: { rel: 'alternate', type: 'application/rss+xml', title: 'ForgeDesk Blog', href: 'https://docs.forgedesk.eu.cc/rss.xml' } }
                         ],
                         customCss: [
                                 './src/styles/custom.css',

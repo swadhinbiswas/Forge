@@ -74,6 +74,15 @@ pub enum UserEvent {
         Option<String>,
         crossbeam_channel::Sender<bool>,
     ),
+    /// Apply a delta update (patch_url, old_hash, new_hash, sig, pub_key, sender)
+    ApplyDeltaUpdate(
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        crossbeam_channel::Sender<bool>,
+    ),
 }
 
 /// Emit a window event to the Python callback.

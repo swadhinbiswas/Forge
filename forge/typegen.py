@@ -41,7 +41,7 @@ class TypeGenerator:
 
         if "str" in py_type.lower():
             return "string"
-            
+
         if "int" in py_type.lower() or "float" in py_type.lower():
             return "number"
 
@@ -56,45 +56,45 @@ class TypeGenerator:
     def _generate_command_signature(self, cmd: Dict[str, Any]) -> str:
         name = cmd["name"]
         schema = cmd.get("schema", {"args": [], "return_type": "Any"})
-        
+
         args_strs = []
         for arg in schema.get("args", []):
             ts_type = self._python_to_ts_type(arg["type"])
             optional = "?" if arg.get("optional", False) else ""
             args_strs.append(f"{arg['name']}{optional}: {ts_type}")
-            
+
         args_joined = ", ".join(args_strs)
         return_ts = self._python_to_ts_type(schema.get("return_type", "Any"))
-        
+
         # All IPC calls return Promises in JS
         if return_ts == "void":
             return_ts = "void"
             promise_return = "Promise<void>"
         else:
             promise_return = f"Promise<{return_ts}>"
-            
+
         return f"{name}({args_joined}): {promise_return};"
 
     def generate(self) -> str:
         """Generate the complete index.d.ts source string."""
-        
+
         # Group commands by module prefix (e.g. fs_read -> fs.read)
         # Commands with no obvious prefix or inside internal namespace
         # get grouped under standard API endpoints, or exposed flat.
-        
+
         groups: Dict[str, List[str]] = {}
         flat_commands: List[str] = []
 
         # List of capabilities we group into sub-interfaces
         sub_namespaces = [
-            "fs", "dialog", "clipboard", "window", "runtime", 
-            "notifications", "updater", "menu", "tray", "deepLink", "app", 
+            "fs", "dialog", "clipboard", "window", "runtime",
+            "notifications", "updater", "menu", "tray", "deepLink", "app",
             "shortcuts", "screen", "power", "lifecycle", "keychain", "system"
         ]
 
         for cmd in self.registry:
             name = cmd["name"]
-            
+
             # Skip internal framework introspections
             if name.startswith("__forge_"):
                 continue
@@ -106,7 +106,7 @@ class TypeGenerator:
                     groups.setdefault(ns, []).append(self._generate_command_signature(cmd))
                     placed = True
                     break
-            
+
             if not placed:
                 flat_commands.append(self._generate_command_signature(cmd))
 
@@ -128,10 +128,10 @@ class TypeGenerator:
         for ns, cmds in groups.items():
             if not cmds:
                 continue
-            
+
             interface_name = f"Forge{ns.capitalize()}Api"
             interface_names[ns] = interface_name
-            
+
             out.append(f"export interface {interface_name} {{")
             for cmd_str in cmds:
                 # remove prefix from method name inside the interface
@@ -149,16 +149,16 @@ class TypeGenerator:
         out.append('  on(eventName: string, handler: (payload: unknown) => void): unknown;')
         out.append('  once(eventName: string, handler: (payload: unknown) => void): unknown;')
         out.append('  off(eventName: string, handler: (payload: unknown) => void): unknown;')
-        
+
         for ns, interface_name in interface_names.items():
             out.append(f"  {ns}: {interface_name};")
-            
+
         for cmd_str in flat_commands:
             out.append(f"  {cmd_str}")
 
         out.append("}")
         out.append("")
-        
+
         out.append("export declare function isForgeAvailable(): boolean;")
         out.append("export declare function getForge(): ForgeApi;")
         out.append("export declare function invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;")

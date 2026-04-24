@@ -405,4 +405,45 @@ impl WindowProxy {
             )
         })
     }
+
+    /// Apply a delta update (binary diff patch).
+    ///
+    /// Downloads a bsdiff patch instead of the full binary, reducing update
+    /// size from 30-50MB to typically 1-5MB.
+    ///
+    /// Args:
+    ///     patch_url: URL to download the bsdiff patch file
+    ///     expected_old_hash: SHA-256 hash of current executable (verification)
+    ///     expected_new_hash: SHA-256 hash of patched executable (verification)
+    ///     signature_hex: Ed25519 signature of the patch (optional)
+    ///     pub_key_hex: Ed25519 public key for verification (optional)
+    pub fn apply_delta_update(
+        &self,
+        patch_url: String,
+        expected_old_hash: Option<String>,
+        expected_new_hash: Option<String>,
+        signature_hex: Option<String>,
+        pub_key_hex: Option<String>,
+    ) -> PyResult<bool> {
+        let (tx, rx) = crossbeam_channel::bounded(1);
+        self.proxy
+            .send_event(UserEvent::ApplyDeltaUpdate(
+                patch_url,
+                expected_old_hash,
+                expected_new_hash,
+                signature_hex,
+                pub_key_hex,
+                tx,
+            ))
+            .map_err(|_| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                    "Failed to send apply delta update event",
+                )
+            })?;
+        rx.recv().map_err(|_| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                "Failed to receive apply delta update status",
+            )
+        })
+    }
 }

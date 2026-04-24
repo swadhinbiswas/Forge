@@ -66,7 +66,7 @@ class BuiltinLocalLLMAPI:
         """Stream localized chat completion via IPC channels for responsive UIs."""
         if not self._llm:
             return {"ok": False, "error": "No model loaded. Call llm_load first."}
-        
+
         # We start a streaming task in the background using Forge's background task API
         def _stream_task() -> None:
             try:

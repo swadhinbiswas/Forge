@@ -1,9 +1,8 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 import serial
 import serial.tools.list_ports
 
-from forge.state import get_app_state
 from forge.events import emit
 
 logger = logging.getLogger(__name__)
@@ -37,16 +36,16 @@ class SerialAPI:
         """Open a serial connection."""
         if port in self._connections:
             return True
-            
+
         try:
             ser = serial.Serial(port, baudrate=baudrate, timeout=1)
             self._connections[port] = ser
-            
+
             # Start a read loop in background
             import threading
             t = threading.Thread(target=self._read_loop, args=(port,), daemon=True)
             t.start()
-            
+
             logger.info(f"Opened Serial port: {port} at {baudrate} baud")
             return True
         except Exception as e:
@@ -57,7 +56,7 @@ class SerialAPI:
         """Write raw bytes to a port."""
         if port not in self._connections:
             return False
-            
+
         try:
             self._connections[port].write(data)
             return True
@@ -80,7 +79,7 @@ class SerialAPI:
         """Background thread to read lines from serial and emit them to the frontend."""
         if port not in self._connections:
             return
-            
+
         ser = self._connections[port]
         while self._running and port in self._connections and ser.is_open:
             try:
@@ -95,7 +94,7 @@ class SerialAPI:
             except Exception as e:
                 logger.warning(f"Port {port} read loop disconnected: {e}")
                 break
-                
+
         # Clean up
         self.close(port)
         emit("serial_disconnected", {"port": port})

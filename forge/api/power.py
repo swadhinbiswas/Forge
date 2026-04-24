@@ -6,7 +6,6 @@ Provides methods for checking battery status and power-saving modes.
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Dict, Any
 
 if TYPE_CHECKING:

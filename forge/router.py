@@ -5,7 +5,7 @@ Enables grouping IPC commands into modular routers that can be
 included into the main ForgeApp, eliminating global state decorators.
 """
 
-from typing import Any, Callable, Dict, Optional
+from typing import Callable, Dict, Optional
 
 
 class Router:
@@ -39,11 +39,11 @@ class Router:
             cmd_name = name or getattr(func, "_forge_cmd", None) or func.__name__
             if self.prefix:
                 cmd_name = f"{self.prefix}:{cmd_name}"
-            
+
             if capability is not None:
                 func._forge_capability = capability  # type: ignore[attr-defined]
             func._forge_version = version  # type: ignore[attr-defined]
-            
+
             self.commands[cmd_name] = func
             return func
 

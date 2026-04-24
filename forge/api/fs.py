@@ -15,7 +15,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import List, Set, Any, Union
+from typing import List, Union
 
 from forge.config import FileSystemPermissions
 
@@ -54,7 +54,7 @@ class FileSystemAPI:
         from forge.scope import ScopeValidator
 
         self._base_path = base_path.resolve() if base_path else Path.cwd().resolve()
-        
+
         self._read_dirs: List[Path] = []
         self._write_dirs: List[Path] = []
         deny_patterns: list[str] = []
@@ -62,7 +62,7 @@ class FileSystemAPI:
         for directory in allowed_dirs or []:
             self._read_dirs.append(Path(directory).resolve())
             self._write_dirs.append(Path(directory).resolve())
-        
+
         if isinstance(permissions, bool) and permissions:
             self._read_dirs.append(self._base_path)
             self._write_dirs.append(self._base_path)
@@ -109,7 +109,7 @@ class FileSystemAPI:
             allow_absolute = True
         else:
             input_path = Path(path)
-        
+
         if input_path.is_absolute():
             resolved = input_path.resolve()
         else:
@@ -416,15 +416,15 @@ class FileSystemAPI:
             ValueError: If the file path is not within the allowed permission scopes.
         """
         import urllib.parse
-        
+
         # We validate the path against the READ scope
         resolved = self._resolve_path(path, mode="read", allow_absolute=True)
-        
+
         # Convert path to the URL standard
         path_str = str(resolved).replace("\\", "/")
-        
+
         # URL encode to handle spaces and special characters
         encoded = urllib.parse.quote(path_str)
-        
+
         # Construct the specialized protocol URL
         return f"forge-asset://{encoded}"

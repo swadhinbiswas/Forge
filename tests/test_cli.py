@@ -209,7 +209,7 @@ def test_create_copies_template_contract_metadata(tmp_path: Path, monkeypatch) -
 
     result = runner.invoke(
         app,
-        ["create", "sample-app", "--template", "plain", "--author", "Forge Tester"],
+        ["create", "sample-app", "--template", "plain", "--author", "Forge Tester", "--package-manager", "npm", "--no-tailwind"],
     )
 
     assert result.exit_code == 0
@@ -222,7 +222,7 @@ def test_create_generates_frontend_workspace_files(tmp_path: Path, monkeypatch) 
     monkeypatch.setattr("forge_cli.main._setup_python_env", lambda _project_dir: None)
     monkeypatch.chdir(tmp_path)
 
-    result = runner.invoke(app, ["create", "workspace-app", "--template", "react", "--author", "Forge Tester"])
+    result = runner.invoke(app, ["create", "workspace-app", "--template", "react", "--author", "Forge Tester", "--package-manager", "npm", "--no-tailwind"])
 
     assert result.exit_code == 0
     package_json = json.loads((tmp_path / "workspace-app" / "package.json").read_text(encoding="utf-8"))

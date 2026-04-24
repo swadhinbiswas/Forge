@@ -357,6 +357,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bsdiff"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53a5456cea81693e6d82a95ab193fdaca148588aa7665b2b05d51bb487b08e91"
+
+[[package]]
 name = "bumpalo"
 version = "3.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1030,6 +1036,7 @@ dependencies = [
  "anyhow",
  "arboard",
  "auto-launch",
+ "bsdiff",
  "crossbeam-channel",
  "ed25519-dalek",
  "global-hotkey",
@@ -1046,6 +1053,7 @@ dependencies = [
  "self-replace",
  "serde",
  "serde_json",
+ "sha2",
  "single-instance",
  "starship-battery",
  "tao",

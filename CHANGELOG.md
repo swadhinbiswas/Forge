@@ -5,9 +5,31 @@ All notable changes to Forge Framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2026-04-21
+## [3.0.0] - 2026-04-24
 
 ### Added
+
+#### Production Readiness
+- **Build Size Optimization** — Enhanced Nuitka configuration with 30+ aggressive `--nofollow-import-to` flags, post-build `strip_assets()` method (20-40% reduction), and `analyze_size()` method for optimization suggestions
+- **Delta Updater** — Binary diff/patch updates using bsdiff, reducing update size from 30-50MB to 1-5MB with SHA-256 hash verification
+- **E2E Integration Tests** — 45 comprehensive end-to-end tests covering app initialization, IPC bridge, event system, state management, window management, scope validation, error recovery, and router
+- **Knowledge Graph** — AI-readable codebase analysis at `.understand-anything/knowledge-graph.json` (1327 nodes, 998 edges, 12 layers, 12 tour steps)
+
+#### CI/CD & Governance
+- **Optimized CI Pipeline** — Complete rewrite with Python 3.14 matrix, Cargo/uv/npm caching, concurrency control, CodeQL security scanning, dependency audit, and version alignment gate
+- **Optimized Release Pipeline** — Pre-flight validation, multi-platform wheel builds, SHA-256 checksums, PyPI/NPM verification, rich GitHub Release notes
+- **Branch Protection Rules** — Comprehensive `BRANCH_PROTECTION.md` with main/release branch rules, required status checks, merge strategy, and commit message standards
+- **CODEOWNERS** — Automatic review assignment by component (Rust, Python, Frontend, DevOps, Docs, Security)
+- **Dependabot** — Automated dependency updates for pip, Cargo, npm, and GitHub Actions
+- **PR Template** — Structured pull request template with checklist
+- **Issue Templates** — Bug report and feature request YAML forms
+- **Security Policy** — Updated `SECURITY.md` with reporting timeline, disclosure policy, and security features
+
+#### Documentation
+- **API Reference** — Complete `API.md` with all 26+ APIs and 20+ plugins documented
+- **Architecture Guide** — `ARCHITECTURE.md` with system overview, data flow, components, thread model, and extension points
+- **Contributing Guide** — `CONTRIBUTING.md` with dev setup, coding standards, testing, and PR process
+- **Updated README** — Production-ready with performance comparison, security features, and tech stack
 
 #### Infrastructure & Workflow
 - **Enterprise CI/CD Pipelines** — implemented full GitHub Actions matrices (`ci.yml` and `publish.yml`) for Rust/Python/Node multi-platform testing, Maturin compilation, and automatic PyPI/npm publishing securely via OIDC.
@@ -79,23 +101,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed PyPI package to `forgedesk`
 - npm packages scoped under `@forgedesk/`
 - Thread pool uses NoGIL-aware `ThreadPoolExecutor`
+- Domain changed to `forgedesk.eu.cc`
 
 ### Fixed
-- Fixed `error TS18003` in NPM workspace builds for API stub generation.
-- Fixed interactive CLI prompts hanging in CI/headless environments by properly piping offline arguments.
-- Removed dangling debug scripts and obsolete testing files from root directory.
-
-### Fixed
-- Fixed `error TS18003` in NPM workspace builds for API stub generation.
-- Fixed interactive CLI prompts hanging in CI/headless environments by properly piping offline arguments.
-- Removed dangling debug scripts and obsolete testing files from root directory.
-
-### Fixed
-- **NPM Workspaces** — Fixed `error TS18003` in NPM workspace builds for API stub generation.
-- **CLI E2E Auto** — Fixed interactive CLI prompts hanging in CI/headless environments by properly piping offline arguments.
-- **Repo Hygiene** — Removed dangling debug scripts and obsolete testing files from root directory.
+- Fixed `error TS18003` in NPM workspace builds for API stub generation
+- Fixed interactive CLI prompts hanging in CI/headless environments by properly piping offline arguments
+- Removed dangling debug scripts and obsolete testing files from root directory
+- Fixed mismatched `unsafe` blocks in `native_window.rs`
 - WebKitGTK Wayland compositor crash on Linux
 - CLI complex template absolute import paths
+- Python linting issues (111 auto-fixed with ruff)
 
 ## [2.0.2] - 2024-05-31
 

@@ -11,7 +11,7 @@ export async function GET(context) {
   return rss({
     title: 'ForgeDesk Blog Updates',
     description: 'Latest news, releases, and guides for the ForgeDesk Python framework.',
-    site: context.site || 'https://docs.forgedesk.dev',
+    site: context.site || 'https://docs.forgedesk.eu.cc',
     items: blogPosts.map((post) => ({
       title: post.data.title,
       // Default to current date if missing so validation passes

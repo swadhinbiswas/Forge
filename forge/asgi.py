@@ -9,7 +9,6 @@ directory statically and bridges IPC commands seamlessly over WebSockets.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import mimetypes
 from pathlib import Path
@@ -39,11 +38,11 @@ class ASGIWebSocketProxy:
         # Luckily, the bridge typically formats this as window.__forge__._handleMessage({...})
         prefix = "window.__forge__._handleMessage("
         suffix = ")"
-        
+
         payload_text = script
         if script.startswith(prefix) and script.endswith(suffix):
             payload_text = script[len(prefix):-len(suffix)]
-            
+
         asyncio.run_coroutine_threadsafe(
             self.send({
                 "type": "websocket.send",
@@ -164,7 +163,7 @@ class ASGIApp:
 
     async def _handle_websocket(self, scope: Dict[str, Any], receive: Callable[[], Awaitable[Dict[str, Any]]], send: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
         path = scope.get("path", "/")
-        
+
         # Only allow ipc websocket connections
         if path != "/_forge/ipc":
             await send({"type": "websocket.close", "code": 403})
@@ -180,11 +179,11 @@ class ASGIApp:
                 return
 
         proxy = ASGIWebSocketProxy(send, asyncio.get_running_loop())
-        
+
         # Mark app as ready on the initial connection
         if not self.app._is_ready:
             self.app._is_ready = True
-            
+
         while True:
             message = await receive()
             if message["type"] == "websocket.disconnect":

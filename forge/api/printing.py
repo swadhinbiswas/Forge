@@ -15,7 +15,7 @@ class PrintingAPI:
                 self.print_page()
             except Exception as e:
                 logger.error(f"Error handling print request: {e}")
-                
+
     def print_page(self) -> None:
         """Open the native print dialog for the current window webview."""
         checker = getattr(self.app, "has_capability", None)

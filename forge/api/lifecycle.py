@@ -42,14 +42,14 @@ class LifecycleAPI:
             bool: True if this is the ONLY running instance. False if another instance exists.
         """
         self._require_capability()
-        
+
         lock_name = instance_name or self._app.config.app.name or "forge-app-locked"
-        
+
         # We hold the guard reference closely so it isn't garbage collected.
         # Once garbage collected, the Rust memory drops and the Mutex/File lock is removed.
         from forge import forge_core
         self._guard = forge_core.SingleInstanceGuard(lock_name)
-        
+
         return self._guard.is_single()
 
     def relaunch(self) -> None:
@@ -57,9 +57,8 @@ class LifecycleAPI:
         Immediately forcefully relaunch the entire application.
         """
         self._require_capability()
-        import os
         import subprocess
-        
+
         # Relaunch using the exact same arguments and executable
         subprocess.Popen([sys.executable] + sys.argv)
         self._app.window.close()
