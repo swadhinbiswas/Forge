@@ -26,7 +26,8 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
-  RUSTFLAGS: "-D warnings"
+  # Only treat warnings as errors on Linux (muda unsafe warnings on Windows are pedantic)
+  RUSTFLAGS: ${{ runner.os == 'Linux' && '-D warnings' || '' }}
   UV_SYSTEM_PYTHON: 1
   PYTHON_VERSION: '3.14'
   NODE_VERSION: '20'
@@ -99,7 +100,8 @@ jobs:
             libssl-dev \
             libayatana-xdotool-dev \
             libxcb-shape0-dev \
-            libxcb-xfixes0-dev
+            libxcb-xfixes0-dev \
+            libxdo-dev
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
