@@ -191,12 +191,23 @@ jobs:
 
       - name: Publish packages
         run: |
-          for pkg in packages/api packages/vite-plugin packages/create-forge-app; do
-            if [ -d "$pkg" ]; then
-              echo "📦 Publishing $pkg..."
-              cd $pkg
-              npm publish --access public --provenance || echo "⚠️ Publish failed or already exists"
+          set -euo pipefail
+          VERSION="${{ needs.preflight.outputs.version }}"
+          for pkg_dir in packages/api packages/cli packages/vite-plugin packages/create-forge-app; do
+            if [ -d "$pkg_dir" ]; then
+              PKG_NAME=$(node -p "require('./$pkg_dir/package.json').name")
+              echo "📦 Publishing $PKG_NAME@$VERSION from $pkg_dir..."
+
+              # Skip if this exact version already exists on npm
+              if npm view "$PKG_NAME@$VERSION" version &>/dev/null; then
+                echo "⏭️  $PKG_NAME@$VERSION already exists on npm, skipping"
+                continue
+              fi
+
+              cd "$pkg_dir"
+              npm publish --access public --provenance
               cd ../..
+              echo "✅ Published $PKG_NAME@$VERSION"
             fi
           done
         env:
@@ -204,11 +215,19 @@ jobs:
 
       - name: Verify publication
         run: |
+          set -euo pipefail
           VERSION="${{ needs.preflight.outputs.version }}"
-          for pkg in @forgedesk/api @forgedesk/vite-plugin create-forge-app; do
-            echo "Checking $pkg@$VERSION..."
-            npm view "$pkg@$VERSION" version 2>/dev/null && echo "✅ Published" || echo "⚠️ Not yet available"
+          FAILED=0
+          for pkg in @forgedesk/api @forgedesk/cli @forgedesk/vite-plugin @forgedesk/create-forge-app; do
+            echo "🔍 Checking $pkg@$VERSION..."
+            if npm view "$pkg@$VERSION" version &>/dev/null; then
+              echo "✅ $pkg@$VERSION is available on npm"
+            else
+              echo "❌ $pkg@$VERSION NOT found on npm"
+              FAILED=1
+            fi
           done
+          exit $FAILED
 
   # ──────────────────────────────────────────────────────────
   # Publish to PyPI
