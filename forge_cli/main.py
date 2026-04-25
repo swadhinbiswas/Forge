@@ -153,7 +153,9 @@ def _print_build_summary(title: str, build_result: dict[str, Any]) -> None:
     console.print(Panel(_kv_table(rows), title=title, border_style="forge.ok"))
 
 
-def _print_command_result(title: str, path_label: str, path_value: str, *, footer: str | None = None) -> None:
+def _print_command_result(
+    title: str, path_label: str, path_value: str, *, footer: str | None = None
+) -> None:
     body = f"[bold]{path_label}[/]\n[forge.path]{path_value}[/]"
     if footer:
         body += f"\n\n[forge.muted]{footer}[/]"
@@ -281,7 +283,9 @@ def _validate_plugin_contract(
     if forge_version_range is not None:
         if not isinstance(forge_version_range, str) or not forge_version_range.strip():
             payload["valid"] = False
-            payload["errors"].append("Plugin forge_version must be a non-empty string when provided")
+            payload["errors"].append(
+                "Plugin forge_version must be a non-empty string when provided"
+            )
         elif not _version_satisfies_range(VERSION, forge_version_range):
             payload["valid"] = False
             payload["errors"].append(
@@ -310,7 +314,13 @@ def _collect_plugin_contracts(project_dir: Path, config: Any) -> list[dict[str, 
         plugin_path = Path(raw_path)
         if not plugin_path.is_absolute():
             plugin_path = project_dir / plugin_path
-        candidates = [plugin_path] if plugin_path.is_file() else sorted(plugin_path.glob("*.py")) if plugin_path.is_dir() else []
+        candidates = (
+            [plugin_path]
+            if plugin_path.is_file()
+            else sorted(plugin_path.glob("*.py"))
+            if plugin_path.is_dir()
+            else []
+        )
         if not candidates and plugin_path.exists() is False:
             contracts.append(
                 {
@@ -410,11 +420,7 @@ def _machine_readable_print(payload: dict[str, Any]) -> None:
 def _artifact_snapshot(path: Path) -> set[str]:
     if not path.exists():
         return set()
-    return {
-        str(item)
-        for item in path.rglob("*")
-        if item.exists()
-    }
+    return {str(item) for item in path.rglob("*") if item.exists()}
 
 
 def _slugify(value: str) -> str:
@@ -514,7 +520,11 @@ def _project_payload(project_dir: Path) -> dict[str, Any]:
     if not frontend_path.exists():
         payload["errors"].append(f"Frontend directory missing: {frontend_path}")
     template_metadata = payload.get("template")
-    if isinstance(template_metadata, dict) and template_metadata.get("present") and not template_metadata.get("valid"):
+    if (
+        isinstance(template_metadata, dict)
+        and template_metadata.get("present")
+        and not template_metadata.get("valid")
+    ):
         payload["errors"].extend(template_metadata.get("errors", []))
     for contract in plugin_contracts:
         if not contract.get("valid"):
@@ -533,7 +543,9 @@ def _check_command_version(cmd: str) -> tuple[str, str | None]:
     try:
         result = subprocess.run(
             [path, "--version"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         version = result.stdout.strip() or result.stderr.strip()
         # Extract version number (e.g. "v20.11.0" or "10.2.4")
@@ -546,6 +558,7 @@ def _check_command_version(cmd: str) -> tuple[str, str | None]:
 def _check_port_available(port: int) -> bool:
     """Check if a TCP port is available for binding."""
     import socket
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(1)
@@ -564,6 +577,7 @@ def _check_webview_available() -> tuple[str, str]:
     if system == "Windows":
         try:
             import winreg
+
             key = winreg.OpenKey(
                 winreg.HKEY_LOCAL_MACHINE,
                 r"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",
@@ -582,13 +596,15 @@ def _check_webview_available() -> tuple[str, str]:
     try:
         result = subprocess.run(
             ["pkg-config", "--exists", "webkit2gtk-4.1"],
-            capture_output=True, timeout=5,
+            capture_output=True,
+            timeout=5,
         )
         if result.returncode == 0:
             return "ok", "WebKitGTK 4.1 (pkg-config)"
         result = subprocess.run(
             ["pkg-config", "--exists", "webkit2gtk-4.0"],
-            capture_output=True, timeout=5,
+            capture_output=True,
+            timeout=5,
         )
         if result.returncode == 0:
             return "ok", "WebKitGTK 4.0 (pkg-config)"
@@ -724,7 +740,9 @@ def _select_desktop_build_tool(project_dir: Path) -> dict[str, Any]:
     }
 
 
-def _build_validation_payload(config: Any, project_dir: Path, target: str, output_dir: Path) -> dict[str, Any]:
+def _build_validation_payload(
+    config: Any, project_dir: Path, target: str, output_dir: Path
+) -> dict[str, Any]:
     entry_path = config.get_entry_path()
     frontend_path = config.get_frontend_path()
     icon_path = (project_dir / config.build.icon).resolve() if config.build.icon else None
@@ -778,7 +796,9 @@ def _build_validation_payload(config: Any, project_dir: Path, target: str, outpu
         if not build_tool["available"]:
             errors.append("No supported desktop build tool found. Install maturin or nuitka.")
         elif build_tool["name"] == "nuitka" and (project_dir / "Cargo.toml").exists():
-            warnings.append("Cargo.toml detected but maturin is unavailable; falling back to Nuitka.")
+            warnings.append(
+                "Cargo.toml detected but maturin is unavailable; falling back to Nuitka."
+            )
         if (config.protocol.schemes or config.signing.enabled) and not config.packaging.app_id:
             warnings.append(
                 "packaging.app_id should be set when using protocol handlers or signing desktop builds."
@@ -792,7 +812,8 @@ def _build_validation_payload(config: Any, project_dir: Path, target: str, outpu
                 "signing.notarize is enabled without signing.verify_command; post-sign verification is recommended."
             )
         if config.signing.notarize and not (
-            config.signing.notarize_command or (platform.system() == "Darwin" and shutil.which("xcrun"))
+            config.signing.notarize_command
+            or (platform.system() == "Darwin" and shutil.which("xcrun"))
         ):
             warnings.append(
                 "signing.notarize is enabled but no notarization command or supported platform adapter is available."
@@ -801,7 +822,9 @@ def _build_validation_payload(config: Any, project_dir: Path, target: str, outpu
             warnings.append(
                 "plugins.enabled is true but no plugins.modules or plugins.paths are configured."
             )
-        invalid_plugin_contracts = [item for item in packaging["plugins"]["contracts"] if not item.get("valid")]
+        invalid_plugin_contracts = [
+            item for item in packaging["plugins"]["contracts"] if not item.get("valid")
+        ]
         if invalid_plugin_contracts:
             warnings.append(
                 "One or more plugin contracts are invalid; inspect validation.packaging.plugins.contracts for details."
@@ -889,7 +912,9 @@ def _write_package_descriptors(
 ) -> dict[str, Any]:
     manifest_payload = _package_contract_payload(config, target, output_dir, builder, artifacts)
     manifest_path = output_dir / "forge-package.json"
-    manifest_path.write_text(json.dumps(manifest_payload, indent=2, sort_keys=True), encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest_payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     plugin_contracts = _collect_plugin_contracts(project_dir, config)
 
     descriptor_paths = [str(manifest_path)]
@@ -922,7 +947,9 @@ def _write_package_descriptors(
         "product_name": config.packaging.product_name or config.app.name,
         "schemes": list(config.protocol.schemes),
     }
-    protocol_path.write_text(json.dumps(protocol_payload, indent=2, sort_keys=True), encoding="utf-8")
+    protocol_path.write_text(
+        json.dumps(protocol_payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     descriptor_paths.append(str(protocol_path))
     descriptors.append({"type": "protocol-manifest", "path": str(protocol_path)})
 
@@ -1070,20 +1097,24 @@ def _find_packaging_tool(tool_name: str) -> str | None:
     fallback_dirs: list[Path] = []
     if normalized.startswith("makensis"):
         for root in roots:
-            fallback_dirs.extend([
-                root / "NSIS",
-                root / "nsis",
-                root / "NSIS" / "Bin",
-                root / "nsis" / "bin",
-            ])
+            fallback_dirs.extend(
+                [
+                    root / "NSIS",
+                    root / "nsis",
+                    root / "NSIS" / "Bin",
+                    root / "nsis" / "bin",
+                ]
+            )
     elif normalized in {"candle", "light"}:
         for root in roots:
-            fallback_dirs.extend([
-                root / "WiX Toolset v3.11" / "bin",
-                root / "WiX Toolset v3.14" / "bin",
-                root / "wix toolset v3.11" / "bin",
-                root / "wix toolset v3.14" / "bin",
-            ])
+            fallback_dirs.extend(
+                [
+                    root / "WiX Toolset v3.11" / "bin",
+                    root / "WiX Toolset v3.14" / "bin",
+                    root / "wix toolset v3.11" / "bin",
+                    root / "wix toolset v3.14" / "bin",
+                ]
+            )
 
     for directory in fallback_dirs:
         for candidate in candidates:
@@ -1109,16 +1140,31 @@ def _validate_installer_tooling(config: Any, errors: list[str]) -> None:
         errors.append("Packaging format 'dmg' requires the 'hdiutil' tool on macOS.")
     if current_platform == "Windows" and "nsis" in formats and not _find_packaging_tool("makensis"):
         errors.append("Packaging format 'nsis' requires the 'makensis' tool on Windows.")
-    if current_platform == "Windows" and "msi" in formats and not (
-        _find_packaging_tool("wixl") or (_find_packaging_tool("candle") and _find_packaging_tool("light"))
+    if (
+        current_platform == "Windows"
+        and "msi" in formats
+        and not (
+            _find_packaging_tool("wixl")
+            or (_find_packaging_tool("candle") and _find_packaging_tool("light"))
+        )
     ):
-        errors.append("Packaging format 'msi' requires 'wixl' or the WiX toolset ('candle' and 'light').")
-    if current_platform == "Linux" and "appimage" in formats and not _find_packaging_tool("appimagetool"):
+        errors.append(
+            "Packaging format 'msi' requires 'wixl' or the WiX toolset ('candle' and 'light')."
+        )
+    if (
+        current_platform == "Linux"
+        and "appimage" in formats
+        and not _find_packaging_tool("appimagetool")
+    ):
         errors.append("Packaging format 'appimage' requires the 'appimagetool' binary on Linux.")
-    if current_platform == "Linux" and "flatpak" in formats and not (
-        _find_packaging_tool("flatpak-builder") and _find_packaging_tool("flatpak")
+    if (
+        current_platform == "Linux"
+        and "flatpak" in formats
+        and not (_find_packaging_tool("flatpak-builder") and _find_packaging_tool("flatpak"))
     ):
-        errors.append("Packaging format 'flatpak' requires both 'flatpak-builder' and 'flatpak' on Linux.")
+        errors.append(
+            "Packaging format 'flatpak' requires both 'flatpak-builder' and 'flatpak' on Linux."
+        )
 
 
 def _write_ar_archive(archive_path: Path, members: list[tuple[str, bytes]]) -> None:
@@ -1216,7 +1262,14 @@ def _build_linux_deb_installer(
 def _primary_binary_artifact(artifacts: list[str]) -> Path | None:
     for artifact in artifacts:
         artifact_path = Path(artifact)
-        if artifact_path.is_file() and artifact_path.suffix not in {".json", ".desktop", ".asc", ".sig", ".txt", ".md"}:
+        if artifact_path.is_file() and artifact_path.suffix not in {
+            ".json",
+            ".desktop",
+            ".asc",
+            ".sig",
+            ".txt",
+            ".md",
+        }:
             return artifact_path
     return None
 
@@ -1280,7 +1333,9 @@ def _build_windows_msi_installer(
 
     primary_binary = _primary_binary_artifact(artifacts)
     if primary_binary is None:
-        raise FileNotFoundError("Packaging format 'msi' requested but no primary binary artifact was produced.")
+        raise FileNotFoundError(
+            "Packaging format 'msi' requested but no primary binary artifact was produced."
+        )
 
     product_name = config.packaging.product_name or config.app.name
     app_id = config.packaging.app_id or f"dev.forge.{_slugify(product_name)}"
@@ -1301,12 +1356,12 @@ def _build_windows_msi_installer(
                 '      <Directory Id="ProgramFilesFolder">',
                 f'        <Directory Id="INSTALLFOLDER" Name="{product_name}">',
                 f'          <Component Id="MainBinary" Guid="*"><File Source="{primary_binary}" KeyPath="yes" /></Component>',
-                '        </Directory>',
-                '      </Directory>',
-                '    </Directory>',
+                "        </Directory>",
+                "      </Directory>",
+                "    </Directory>",
                 '    <Feature Id="Complete" Title="Complete" Level="1"><ComponentRef Id="MainBinary" /></Feature>',
-                '  </Product>',
-                '</Wix>',
+                "  </Product>",
+                "</Wix>",
             ]
         )
         + "\n",
@@ -1318,11 +1373,23 @@ def _build_windows_msi_installer(
     light = _find_packaging_tool("light")
 
     if wixl:
-        subprocess.run([wixl, "-o", str(msi_path), str(wix_source)], check=True, capture_output=True, text=True)
+        subprocess.run(
+            [wixl, "-o", str(msi_path), str(wix_source)], check=True, capture_output=True, text=True
+        )
     elif candle and light:
         wixobj_path = output_dir / f"{_slugify(product_name)}.wixobj"
-        subprocess.run([candle, "-out", str(wixobj_path), str(wix_source)], check=True, capture_output=True, text=True)
-        subprocess.run([light, "-out", str(msi_path), str(wixobj_path)], check=True, capture_output=True, text=True)
+        subprocess.run(
+            [candle, "-out", str(wixobj_path), str(wix_source)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        subprocess.run(
+            [light, "-out", str(msi_path), str(wixobj_path)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
     else:
         raise FileNotFoundError(
             "Packaging format 'msi' requires 'wixl' or the WiX toolset ('candle' and 'light')."
@@ -1346,7 +1413,11 @@ def _build_macos_dmg_installer(
         return None
 
     app_bundle = next(
-        (Path(artifact) for artifact in artifacts if artifact.endswith(".app") and Path(artifact).exists()),
+        (
+            Path(artifact)
+            for artifact in artifacts
+            if artifact.endswith(".app") and Path(artifact).exists()
+        ),
         None,
     )
     if app_bundle is None:
@@ -1392,7 +1463,9 @@ def _build_windows_nsis_installer(
 
     primary_binary = _primary_binary_artifact(artifacts)
     if primary_binary is None:
-        raise FileNotFoundError("Packaging format 'nsis' requested but no primary binary artifact was produced.")
+        raise FileNotFoundError(
+            "Packaging format 'nsis' requested but no primary binary artifact was produced."
+        )
 
     product_name = config.packaging.product_name or config.app.name
     installer_path = output_dir / f"{_slugify(product_name)}-{config.app.version}-setup.exe"
@@ -1409,13 +1482,13 @@ def _build_windows_nsis_installer(
                 f'OutFile "{installer_path}"',
                 f'InstallDir "$PROGRAMFILES\\{install_dir_name}"',
                 f'Name "{product_name}"',
-                'Page directory',
-                'Page instfiles',
-                'Section',
+                "Page directory",
+                "Page instfiles",
+                "Section",
                 '  SetOutPath "$INSTDIR"',
                 f'  File "{primary_binary}"',
                 f'  CreateShortcut "$DESKTOP\\{install_dir_name}.lnk" "$INSTDIR\\{app_executable}"',
-                'SectionEnd',
+                "SectionEnd",
             ]
         )
         + "\n",
@@ -1449,7 +1522,9 @@ def _build_linux_appimage_installer(
 
     primary_binary = _primary_binary_artifact(artifacts)
     if primary_binary is None:
-        raise FileNotFoundError("Packaging format 'appimage' requested but no primary binary artifact was produced.")
+        raise FileNotFoundError(
+            "Packaging format 'appimage' requested but no primary binary artifact was produced."
+        )
 
     product_name = config.packaging.product_name or config.app.name
     slug = _slugify(product_name)
@@ -1462,17 +1537,20 @@ def _build_linux_appimage_installer(
     binary_dest = usr_bin / primary_binary.name
     shutil.copy2(primary_binary, binary_dest)
 
-    desktop_content = "\n".join(
-        [
-            "[Desktop Entry]",
-            "Type=Application",
-            f"Name={product_name}",
-            f"Exec={primary_binary.name}",
-            f"Icon={icon_basename}",
-            "Terminal=false",
-            f"Categories={config.packaging.category or 'Utility'};",
-        ]
-    ) + "\n"
+    desktop_content = (
+        "\n".join(
+            [
+                "[Desktop Entry]",
+                "Type=Application",
+                f"Name={product_name}",
+                f"Exec={primary_binary.name}",
+                f"Icon={icon_basename}",
+                "Terminal=false",
+                f"Categories={config.packaging.category or 'Utility'};",
+            ]
+        )
+        + "\n"
+    )
 
     desktop_file = usr_share / f"{slug}.desktop"
     desktop_file.write_text(
@@ -1498,18 +1576,18 @@ def _build_linux_appimage_installer(
 
     if not icon_written:
         (appdir / f"{icon_basename}.svg").write_text(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\">"
-            "<rect width=\"256\" height=\"256\" rx=\"48\" fill=\"#1E293B\"/>"
-            "<path d=\"M72 92h112v20H72zm0 52h112v20H72z\" fill=\"#F8FAFC\"/>"
+            '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">'
+            '<rect width="256" height="256" rx="48" fill="#1E293B"/>'
+            '<path d="M72 92h112v20H72zm0 52h112v20H72z" fill="#F8FAFC"/>'
             "</svg>\n",
             encoding="utf-8",
         )
 
     apprun = appdir / "AppRun"
     apprun.write_text(
-        "#!/bin/sh\nDIR=\"$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\"\nexec \"$DIR/usr/bin/"
+        '#!/bin/sh\nDIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec "$DIR/usr/bin/'
         + primary_binary.name
-        + "\" \"$@\"\n",
+        + '" "$@"\n',
         encoding="utf-8",
     )
     apprun.chmod(0o755)
@@ -1542,7 +1620,9 @@ def _build_linux_flatpak_installer(
 
     primary_binary = _primary_binary_artifact(artifacts)
     if primary_binary is None:
-        raise FileNotFoundError("Packaging format 'flatpak' requested but no primary binary artifact was produced.")
+        raise FileNotFoundError(
+            "Packaging format 'flatpak' requested but no primary binary artifact was produced."
+        )
 
     product_name = config.packaging.product_name or config.app.name
     app_id = config.packaging.app_id or f"dev.forge.{_slugify(product_name).replace('-', '')}"
@@ -1567,12 +1647,21 @@ def _build_linux_flatpak_installer(
             }
         ],
     }
-    manifest_path.write_text(json.dumps(manifest_payload, indent=2, sort_keys=True), encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest_payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
 
     flatpak_builder = _require_tool("flatpak-builder", "required to create Flatpak bundles")
     flatpak = _require_tool("flatpak", "required to bundle Flatpak artifacts")
     subprocess.run(
-        [flatpak_builder, "--force-clean", str(build_dir), str(manifest_path), "--repo", str(repo_dir)],
+        [
+            flatpak_builder,
+            "--force-clean",
+            str(build_dir),
+            str(manifest_path),
+            "--repo",
+            str(repo_dir),
+        ],
         check=True,
         capture_output=True,
         text=True,
@@ -1624,7 +1713,12 @@ def _select_signing_adapter(config: Any, target: str) -> dict[str, Any]:
 
     preferred_adapter = config.signing.adapter or "auto"
 
-    if preferred_adapter == "custom" or config.signing.sign_command or config.signing.verify_command or config.signing.notarize_command:
+    if (
+        preferred_adapter == "custom"
+        or config.signing.sign_command
+        or config.signing.verify_command
+        or config.signing.notarize_command
+    ):
         return {
             "name": "custom",
             "kind": "custom",
@@ -1635,11 +1729,26 @@ def _select_signing_adapter(config: Any, target: str) -> dict[str, Any]:
 
     current_platform = platform.system()
     identity = config.signing.identity
-    if preferred_adapter in {"auto", "gpg"} and current_platform == "Linux" and identity and shutil.which("gpg"):
+    if (
+        preferred_adapter in {"auto", "gpg"}
+        and current_platform == "Linux"
+        and identity
+        and shutil.which("gpg")
+    ):
         return {"name": "gpg", "kind": "detached-signature", "tool": shutil.which("gpg")}
-    if preferred_adapter in {"auto", "codesign"} and current_platform == "Darwin" and identity and shutil.which("codesign"):
+    if (
+        preferred_adapter in {"auto", "codesign"}
+        and current_platform == "Darwin"
+        and identity
+        and shutil.which("codesign")
+    ):
         return {"name": "codesign", "kind": "native", "tool": shutil.which("codesign")}
-    if preferred_adapter in {"auto", "signtool"} and current_platform == "Windows" and identity and shutil.which("signtool"):
+    if (
+        preferred_adapter in {"auto", "signtool"}
+        and current_platform == "Windows"
+        and identity
+        and shutil.which("signtool")
+    ):
         return {"name": "signtool", "kind": "native", "tool": shutil.which("signtool")}
     return {"name": "unavailable", "kind": "none", "requested": preferred_adapter}
 
@@ -1655,7 +1764,11 @@ def _run_default_signing_adapter(
 ) -> dict[str, Any]:
     sign_results: list[dict[str, Any]] = []
     verify_results: list[dict[str, Any]] = []
-    target_paths = [path for path in artifacts if Path(path).exists() and (Path(path).is_file() or Path(path).suffix == ".app")]
+    target_paths = [
+        path
+        for path in artifacts
+        if Path(path).exists() and (Path(path).is_file() or Path(path).suffix == ".app")
+    ]
     if package_manifest not in target_paths:
         target_paths.append(package_manifest)
 
@@ -1698,24 +1811,42 @@ def _run_default_signing_adapter(
     elif adapter["name"] == "codesign":
         tool = adapter["tool"]
         timestamp_arg = (
-            [f"--timestamp={config.signing.timestamp_url}"] if config.signing.timestamp_url else ["--timestamp"]
+            [f"--timestamp={config.signing.timestamp_url}"]
+            if config.signing.timestamp_url
+            else ["--timestamp"]
         )
         entitlements_path = getattr(config.signing, "entitlements", None)
-        entitlements_arg = ["--entitlements", str(project_dir / entitlements_path)] if entitlements_path else []
+        entitlements_arg = (
+            ["--entitlements", str(project_dir / entitlements_path)] if entitlements_path else []
+        )
 
         for target_path in target_paths:
             p = Path(target_path)
             if p.is_dir() and p.suffix == ".app":
                 inner_targets = []
                 for child in p.rglob("*"):
-                    if child.is_file() and (child.suffix in (".dylib", ".so", ".node") or child.parent.name == "MacOS" or ".framework" in child.parts):
-                        if child.name != p.stem:  # skip the main executable as it will be signed by the outer container
+                    if child.is_file() and (
+                        child.suffix in (".dylib", ".so", ".node")
+                        or child.parent.name == "MacOS"
+                        or ".framework" in child.parts
+                    ):
+                        if (
+                            child.name != p.stem
+                        ):  # skip the main executable as it will be signed by the outer container
                             inner_targets.append(child)
                 # sign deepest first
                 inner_targets.sort(key=lambda x: len(x.parts), reverse=True)
                 for inner in inner_targets:
                     _run_signing_hook(
-                        [tool, "--force", "--options=runtime", *timestamp_arg, "--sign", config.signing.identity, str(inner)],
+                        [
+                            tool,
+                            "--force",
+                            "--options=runtime",
+                            *timestamp_arg,
+                            "--sign",
+                            config.signing.identity,
+                            str(inner),
+                        ],
                         phase="sign",
                         project_dir=project_dir,
                         output_dir=output_dir,
@@ -1725,7 +1856,16 @@ def _run_default_signing_adapter(
 
             sign_results.append(
                 _run_signing_hook(
-                    [tool, "--force", "--options=runtime", *entitlements_arg, *timestamp_arg, "--sign", config.signing.identity, target_path],
+                    [
+                        tool,
+                        "--force",
+                        "--options=runtime",
+                        *entitlements_arg,
+                        *timestamp_arg,
+                        "--sign",
+                        config.signing.identity,
+                        target_path,
+                    ],
                     phase="sign",
                     project_dir=project_dir,
                     output_dir=output_dir,
@@ -1735,7 +1875,7 @@ def _run_default_signing_adapter(
             )
             verify_results.append(
                 _run_signing_hook(
-                    # For verify we can use --strict 
+                    # For verify we can use --strict
                     [tool, "--verify", "--strict", target_path],
                     phase="verify",
                     project_dir=project_dir,
@@ -1748,7 +1888,11 @@ def _run_default_signing_adapter(
         tool = adapter["tool"]
         inner_paths = []
         for p in output_dir.rglob("*"):
-            if p.is_file() and p.suffix.lower() in (".exe", ".dll", ".pyd", ".node") and str(p) not in target_paths:
+            if (
+                p.is_file()
+                and p.suffix.lower() in (".exe", ".dll", ".pyd", ".node")
+                and str(p) not in target_paths
+            ):
                 inner_paths.append(str(p))
 
         for target_path in inner_paths + target_paths:
@@ -1805,13 +1949,22 @@ def _run_notarization(
         )
 
     if platform.system() == "Darwin" and shutil.which("xcrun"):
-        submit_target = next((path for path in artifacts if Path(path).is_file() and path.endswith(".dmg")), None)
+        submit_target = next(
+            (path for path in artifacts if Path(path).is_file() and path.endswith(".dmg")), None
+        )
         if not submit_target:
-            submit_target = next((path for path in artifacts if Path(path).exists() and path.endswith(".app")), package_manifest)
+            submit_target = next(
+                (path for path in artifacts if Path(path).exists() and path.endswith(".app")),
+                package_manifest,
+            )
 
         apple_id = getattr(config.signing, "apple_id", None) or os.environ.get("FORGE_APPLE_ID")
-        password = getattr(config.signing, "apple_password", None) or os.environ.get("FORGE_APPLE_PASSWORD")
-        team_id = getattr(config.signing, "apple_team_id", None) or os.environ.get("FORGE_APPLE_TEAM_ID")
+        password = getattr(config.signing, "apple_password", None) or os.environ.get(
+            "FORGE_APPLE_PASSWORD"
+        )
+        team_id = getattr(config.signing, "apple_team_id", None) or os.environ.get(
+            "FORGE_APPLE_TEAM_ID"
+        )
 
         auth_args = []
         if apple_id and password and team_id:
@@ -1911,7 +2064,9 @@ def _load_existing_package_manifest(output_dir: Path) -> tuple[str, list[str], d
     return str(manifest_path), artifacts, manifest
 
 
-def _release_manifest_payload(config: Any, target: str, build_result: dict[str, Any], project_dir=None) -> dict[str, Any]:
+def _release_manifest_payload(
+    config: Any, target: str, build_result: dict[str, Any], project_dir=None
+) -> dict[str, Any]:
     artifacts: list[dict[str, Any]] = []
     for path_str in build_result.get("artifacts", []):
         artifact_path = Path(path_str)
@@ -1947,6 +2102,7 @@ def _release_manifest_payload(config: Any, target: str, build_result: dict[str, 
         "artifacts": artifacts,
     }
 
+
 def _module_available(name: str) -> bool:
     try:
         __import__(name)
@@ -1976,7 +2132,10 @@ def _should_watch_path(path: Path, project_dir: Path, ignored_roots: set[Path]) 
         return False
     if path.name == "forge.js":
         return False
-    if any(part in {"__pycache__", ".git", ".pytest_cache", ".mypy_cache", ".ruff_cache"} for part in path.parts):
+    if any(
+        part in {"__pycache__", ".git", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
+        for part in path.parts
+    ):
         return False
     if path.suffix.lower() not in {
         ".py",
@@ -2056,7 +2215,7 @@ def _graceful_kill(process: subprocess.Popen, *, timeout: int = 5) -> None:
             os.killpg(os.getpgid(process.pid), 15)  # SIGTERM to group
         else:
             process.terminate()
-    except (OSError, ProcessLookupError):
+    except OSError, ProcessLookupError:
         pass
     try:
         process.wait(timeout=timeout)
@@ -2066,7 +2225,7 @@ def _graceful_kill(process: subprocess.Popen, *, timeout: int = 5) -> None:
                 os.killpg(os.getpgid(process.pid), 9)  # SIGKILL
             else:
                 process.kill()
-        except (OSError, ProcessLookupError):
+        except OSError, ProcessLookupError:
             pass
         try:
             process.wait(timeout=3)
@@ -2090,7 +2249,9 @@ def _wait_for_http_ready(url: str, timeout_seconds: int) -> None:
     raise RuntimeError(f"Dev server did not become ready at {url}: {last_error}")
 
 
-def _launch_dev_server(project_dir: Path, config: Any) -> tuple[subprocess.Popen[str] | None, dict[str, str]]:
+def _launch_dev_server(
+    project_dir: Path, config: Any
+) -> tuple[subprocess.Popen[str] | None, dict[str, str]]:
     command = config.dev.dev_server_command
     url = config.dev.dev_server_url
     if not command or not url:
@@ -2104,7 +2265,9 @@ def _launch_dev_server(project_dir: Path, config: Any) -> tuple[subprocess.Popen
             f"Kill the existing process or use --port to pick another.",
         )
 
-    working_dir = project_dir / config.dev.dev_server_cwd if config.dev.dev_server_cwd else project_dir
+    working_dir = (
+        project_dir / config.dev.dev_server_cwd if config.dev.dev_server_cwd else project_dir
+    )
     console.print(f"[green]OK[/] Starting frontend dev server: [cyan]{command}[/]")
     kwargs: dict[str, Any] = {
         "cwd": str(working_dir),
@@ -2129,12 +2292,21 @@ def _launch_dev_server(project_dir: Path, config: Any) -> tuple[subprocess.Popen
 
 # File extensions that require a full Python restart vs frontend-only reload
 _BACKEND_EXTENSIONS = {".py", ".toml"}
-_FRONTEND_EXTENSIONS = {".html", ".css", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte", ".json", ".md"}
+_FRONTEND_EXTENSIONS = {
+    ".html",
+    ".css",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".svelte",
+    ".json",
+    ".md",
+}
 
 
-def _classify_changes(
-    old_snapshot: dict[str, int], new_snapshot: dict[str, int]
-) -> str:
+def _classify_changes(old_snapshot: dict[str, int], new_snapshot: dict[str, int]) -> str:
     """Classify what kind of reload is needed based on changed files.
 
     Returns:
@@ -2164,11 +2336,11 @@ def _run_dev_loop(project_dir: Path, config: Any, hot_reload: bool) -> None:
 
     entry_path = config.get_entry_path()
     dev_server_process, extra_env = _launch_dev_server(project_dir, config)
-    
+
     env = os.environ.copy()
     if extra_env:
         env.update(extra_env)
-    
+
     if not hot_reload:
         process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=env)
         try:
@@ -2176,7 +2348,7 @@ def _run_dev_loop(project_dir: Path, config: Any, hot_reload: bool) -> None:
         finally:
             if dev_server_process is not None:
                 _graceful_kill(dev_server_process)
-                
+
     console.print("[green]OK[/] Hot reload watcher active (using watchfiles & os.execv strategy)")
     console.print("[forge.muted]  • .py/.toml changes → full restart via os.execv[/]")
     console.print("[forge.muted]  • .html/.css/.js changes → page reload[/]")
@@ -2200,13 +2372,15 @@ def _run_dev_loop(project_dir: Path, config: Any, hot_reload: bool) -> None:
         # This gives a fast, clean restart without leaving orphaned zombies.
         # Dev server is also preserved (if run external) or killed naturally on exit.
         process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=env)
-        
-        for changes in watchfiles.watch(project_dir, watch_filter=watch_filter, step=500, yield_on_timeout=True):
+
+        for changes in watchfiles.watch(
+            project_dir, watch_filter=watch_filter, step=500, yield_on_timeout=True
+        ):
             if process.poll() is not None:
                 console.print("[yellow]⚠[/] Process exited; restarting...")
                 process = _launch_dev_process_with_env(entry_path, project_dir, extra_env=env)
                 continue
-                
+
             if not changes:
                 continue
 
@@ -2219,7 +2393,9 @@ def _run_dev_loop(project_dir: Path, config: Any, hot_reload: bool) -> None:
                     change_type = "frontend"
 
             if change_type == "backend":
-                console.print("[cyan]⟳[/] Backend change detected → [bold]full restart via execv[/]")
+                console.print(
+                    "[cyan]⟳[/] Backend change detected → [bold]full restart via execv[/]"
+                )
                 _graceful_kill(process)
                 if dev_server_process is not None:
                     _graceful_kill(dev_server_process)
@@ -2231,7 +2407,7 @@ def _run_dev_loop(project_dir: Path, config: Any, hot_reload: bool) -> None:
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Dev mode stopped.[/]")
-        if 'process' in locals():
+        if "process" in locals():
             _graceful_kill(process)
         if dev_server_process is not None:
             _graceful_kill(dev_server_process)
@@ -2288,39 +2464,46 @@ def create_project(
 
     Scaffolds a new project with the specified template and configuration.
     """
-    
+
     console.print()
     console.print("  [bold #ff5e00]Welcome to Forge![/]")
     console.print()
-
 
     if not name:
         try:
             import questionary
             from questionary import Style
-            custom_style_astro = Style([
-                ('qmark', 'fg:#ff5e00 bold'),
-                ('question', 'bold'),
-                ('answer', 'fg:#2ecc71 bold'),
-                ('pointer', 'fg:#ff5e00 bold'),
-                ('highlighted', 'fg:#ff5e00 bold'),
-                ('selected', 'fg:#2ecc71'),
-            ])
+
+            custom_style_astro = Style(
+                [
+                    ("qmark", "fg:#ff5e00 bold"),
+                    ("question", "bold"),
+                    ("answer", "fg:#2ecc71 bold"),
+                    ("pointer", "fg:#ff5e00 bold"),
+                    ("highlighted", "fg:#ff5e00 bold"),
+                    ("selected", "fg:#2ecc71"),
+                ]
+            )
             name = questionary.text(
                 "Directory What should we name this new project?",
                 default="my-forge-app",
                 style=custom_style_astro,
-                qmark="◆"
+                qmark="◆",
             ).ask()
-            if not name: raise typer.Exit(1)
+            if not name:
+                raise typer.Exit(1)
         except ImportError:
             name = Prompt.ask("Project name", default="my-forge-app")
-            if not name: raise typer.Exit(1)
+            if not name:
+                raise typer.Exit(1)
 
     valid_templates = ["plain", "react", "vue", "svelte", "complex", "astro", "nextjs"]
 
     if template and framework and template != framework:
-        _print_note("Provide either --template or --framework, or use the same value for both.", level="error")
+        _print_note(
+            "Provide either --template or --framework, or use the same value for both.",
+            level="error",
+        )
         raise typer.Exit(1)
 
     selected_template = framework or template
@@ -2328,33 +2511,42 @@ def create_project(
         try:
             import questionary
             from questionary import Style
-            custom_style_astro = Style([
-                ('qmark', 'fg:#ff5e00 bold'),
-                ('question', 'bold'),
-                ('answer', 'fg:#2ecc71 bold'),
-                ('pointer', 'fg:#ff5e00 bold'),
-                ('highlighted', 'fg:#ff5e00 bold'),
-                ('selected', 'fg:#2ecc71'),
-            ])
+
+            custom_style_astro = Style(
+                [
+                    ("qmark", "fg:#ff5e00 bold"),
+                    ("question", "bold"),
+                    ("answer", "fg:#2ecc71 bold"),
+                    ("pointer", "fg:#ff5e00 bold"),
+                    ("highlighted", "fg:#ff5e00 bold"),
+                    ("selected", "fg:#2ecc71"),
+                ]
+            )
             selected_template = questionary.select(
                 "Template  How would you like to start your new project?",
                 choices=[
                     questionary.Choice("React     (Fast + Vite + React 19)", value="react"),
                     questionary.Choice("Next.js   (React + Tailwind + Shadcn UI)", value="nextjs"),
                     questionary.Choice("Astro     (Fast Static App Site)", value="astro"),
-                    questionary.Choice("Complex   (React + TypeScript + IPC Demo)", value="complex"),
+                    questionary.Choice(
+                        "Complex   (React + TypeScript + IPC Demo)", value="complex"
+                    ),
                     questionary.Choice("Vue       (Vue 3 + Vite)", value="vue"),
                     questionary.Choice("Svelte    (Svelte 5 + Vite)", value="svelte"),
-                    questionary.Choice("Vanilla   (Plain JS/HTML)", value="plain")
+                    questionary.Choice("Vanilla   (Plain JS/HTML)", value="plain"),
                 ],
                 default="react",
                 style=custom_style_astro,
-                qmark="◆"
+                qmark="◆",
             ).ask()
-            if not selected_template: raise typer.Exit(1)
+            if not selected_template:
+                raise typer.Exit(1)
         except ImportError:
-            selected_template = Prompt.ask("Choose template", choices=valid_templates, default="plain")
-            if not selected_template: raise typer.Exit(1)
+            selected_template = Prompt.ask(
+                "Choose template", choices=valid_templates, default="plain"
+            )
+            if not selected_template:
+                raise typer.Exit(1)
 
     template = selected_template.lower().strip()
     if template not in valid_templates:
@@ -2367,30 +2559,30 @@ def create_project(
         if width < 100 or height < 100 or width > 10000 or height > 10000:
             raise ValueError()
     except ValueError:
-        _print_note("Invalid window size format. Use WIDTHxHEIGHT, for example 1280x800.", level="error")
+        _print_note(
+            "Invalid window size format. Use WIDTHxHEIGHT, for example 1280x800.", level="error"
+        )
         raise typer.Exit(1)
-
-
 
     # Interactive Prompts - Astro CLI Style
     try:
         import questionary
         from questionary import Style
 
-        custom_style_astro = Style([
-            ('qmark', 'fg:#ff5e00 bold'),       # Astro orange mark
-            ('question', 'bold'),
-            ('answer', 'fg:#2ecc71 bold'),      # Green answers
-            ('pointer', 'fg:#ff5e00 bold'),
-            ('highlighted', 'fg:#ff5e00 bold'), # Orange highlighted
-            ('selected', 'fg:#2ecc71'),         # Green selected
-            ('separator', 'fg:#cc5454'),
-            ('instruction', ''),
-            ('text', ''),
-            ('disabled', 'fg:#858585 italic')
-        ])
-        
-
+        custom_style_astro = Style(
+            [
+                ("qmark", "fg:#ff5e00 bold"),  # Astro orange mark
+                ("question", "bold"),
+                ("answer", "fg:#2ecc71 bold"),  # Green answers
+                ("pointer", "fg:#ff5e00 bold"),
+                ("highlighted", "fg:#ff5e00 bold"),  # Orange highlighted
+                ("selected", "fg:#2ecc71"),  # Green selected
+                ("separator", "fg:#cc5454"),
+                ("instruction", ""),
+                ("text", ""),
+                ("disabled", "fg:#858585 italic"),
+            ]
+        )
 
         if not author:
             default_author = os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
@@ -2398,9 +2590,10 @@ def create_project(
                 "Author    Who is the author of this project?",
                 default=default_author,
                 style=custom_style_astro,
-                qmark="◆"
+                qmark="◆",
             ).ask()
-            if not author: raise typer.Exit(1)
+            if not author:
+                raise typer.Exit(1)
 
         if package_manager is None:
             package_manager = questionary.select(
@@ -2408,9 +2601,10 @@ def create_project(
                 choices=["npm", "pnpm", "bun", "yarn", "skip (I'll install manually)"],
                 default="npm",
                 style=custom_style_astro,
-                qmark="◆"
+                qmark="◆",
             ).ask()
-            if not package_manager: raise typer.Exit(1)
+            if not package_manager:
+                raise typer.Exit(1)
             if "skip" in package_manager:
                 package_manager = "skip"
 
@@ -2421,9 +2615,10 @@ def create_project(
                     default=True,
                     style=custom_style_astro,
                     qmark="◆",
-                    instruction=" "
+                    instruction=" ",
                 ).ask()
-                if tailwind is None: raise typer.Exit(1)
+                if tailwind is None:
+                    raise typer.Exit(1)
             else:
                 tailwind = False
 
@@ -2432,20 +2627,22 @@ def create_project(
         if not author:
             default_author = os.environ.get("USER", os.environ.get("USERNAME", "Developer"))
             author = Prompt.ask("Author name", default=default_author)
-            if not author: raise typer.Exit(1)
+            if not author:
+                raise typer.Exit(1)
 
         if package_manager is None:
-            package_manager = Prompt.ask("Package manager", choices=["npm", "pnpm", "bun", "yarn", "skip"], default="npm")
-            if not package_manager: raise typer.Exit(1)
+            package_manager = Prompt.ask(
+                "Package manager", choices=["npm", "pnpm", "bun", "yarn", "skip"], default="npm"
+            )
+            if not package_manager:
+                raise typer.Exit(1)
 
         if tailwind is None:
             if template in ["react", "vue", "svelte", "plain", "complex"]:
                 ans = Prompt.ask("Include Tailwind CSS? [y/N]", default="y")
-                tailwind = ans.lower().startswith('y')
+                tailwind = ans.lower().startswith("y")
             else:
                 tailwind = False
-
-
 
     # Create project directory
     project_dir = Path.cwd() / name
@@ -2492,7 +2689,6 @@ def create_project(
             _print_note(error, level="error")
         raise typer.Exit(1)
 
-
     with console.status("[cyan]Scaffolding files...[/]"):
         _copy_template(templates_dir, project_dir, name, author, width, height)
         _write_frontend_workspace_files(project_dir, template, name, tailwind=tailwind)
@@ -2501,7 +2697,9 @@ def create_project(
     _print_note(f"Scaffolded {name}/", level="ok")
     _print_note("Created forge.toml configuration", level="ok")
     _print_note(f"Set up {template} template", level="ok")
-    _print_note(f"Template contract schema v{template_contract['schema_version']} validated", level="ok")
+    _print_note(
+        f"Template contract schema v{template_contract['schema_version']} validated", level="ok"
+    )
 
     if tailwind:
         _print_note("Configured Tailwind CSS + PostCSS", level="ok")
@@ -2513,8 +2711,11 @@ def create_project(
     if package_manager != "skip":
         with console.status(f"[cyan]Running {package_manager} install...[/]"):
             import subprocess
+
             try:
-                subprocess.run([package_manager, "install"], cwd=project_dir, check=True, capture_output=True)
+                subprocess.run(
+                    [package_manager, "install"], cwd=project_dir, check=True, capture_output=True
+                )
                 _print_note(f"Installed Node dependencies via {package_manager}", level="ok")
             except Exception as e:
                 _print_note(f"Failed to install dependencies: {e}", level="warning")
@@ -2522,12 +2723,14 @@ def create_project(
     with console.status("[cyan]Setting up Python environment...[/]"):
         _setup_python_env(project_dir)
 
+    # Create a wrapper script so forge works without manual venv activation
+    _create_forge_wrapper(project_dir)
 
     _print_command_result(
         "Ready to Forge",
         "Next steps",
-        f"cd {name}\nforge dev\nforge serve",
-        footer="Desktop mode: forge dev · Web mode: forge serve",
+        f"cd {name}\n./forge dev       # Desktop mode\n./forge serve     # Web mode",
+        footer="The ./forge wrapper automatically uses the project's .venv",
     )
 
 
@@ -2610,6 +2813,7 @@ def dev_mode(
     try:
         from forge.app import ForgeApp
         from forge.typegen import TypeGenerator
+
         app_inst = ForgeApp(str(config_path))
         if hasattr(app_inst, "bridge"):
             dts_content = TypeGenerator(app_inst.bridge.get_command_registry()).generate()
@@ -2861,6 +3065,7 @@ def build_app(
         try:
             from forge.app import ForgeApp
             from forge.typegen import TypeGenerator
+
             app_inst = ForgeApp(str(config_path))
             if hasattr(app_inst, "bridge"):
                 dts_content = TypeGenerator(app_inst.bridge.get_command_registry()).generate()
@@ -2873,7 +3078,9 @@ def build_app(
     build_fn = _build_web if normalized_target == "web" else _build_desktop
 
     try:
-        build_result = build_fn(config, project_dir, output_dir, emit_output=result_format == "table")
+        build_result = build_fn(
+            config, project_dir, output_dir, emit_output=result_format == "table"
+        )
     except subprocess.CalledProcessError as exc:
         payload["build"] = {
             "status": "failed",
@@ -2898,7 +3105,9 @@ def build_app(
         _print_build_summary("Build Summary", build_result)
 
 
-def _build_web(config, project_dir: Path, output_dir: Path, *, emit_output: bool = True) -> dict[str, Any]:
+def _build_web(
+    config, project_dir: Path, output_dir: Path, *, emit_output: bool = True
+) -> dict[str, Any]:
     """Build web assets for deployment."""
     if emit_output:
         _print_note("Building web bundle...", level="ok")
@@ -2938,7 +3147,9 @@ def _build_web(config, project_dir: Path, output_dir: Path, *, emit_output: bool
     }
 
 
-def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: bool = True) -> dict[str, Any]:
+def _build_desktop(
+    config, project_dir: Path, output_dir: Path, *, emit_output: bool = True
+) -> dict[str, Any]:
     """Build a native desktop binary."""
     if emit_output:
         _print_note("Bundling frontend assets...", level="ok")
@@ -3000,21 +3211,22 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
             )
         if emit_output:
             _print_note("Using Nuitka for Python compilation", level="ok")
-        
+
         build_args = [sys.executable, "-m", "nuitka"]
         if not _module_available("nuitka") and nuitka_path:
             build_args = [nuitka_path]
 
-        build_args.extend([
-            "--onefile",
-            "--assume-yes-for-downloads",
-            "--output-dir=" + str(output_dir),
-            "--output-filename=" + app_name,
-        ])
+        build_args.extend(
+            [
+                "--onefile",
+                "--assume-yes-for-downloads",
+                "--output-dir=" + str(output_dir),
+                "--output-filename=" + app_name,
+            ]
+        )
 
         if (project_dir / "forge.toml").exists():
             build_args.extend([f"--include-data-file={project_dir / 'forge.toml'}=forge.toml"])
-
 
         if config.build.icon and (project_dir / config.build.icon).exists():
             build_args.extend(["--linux-icon=" + str(project_dir / config.build.icon)])
@@ -3023,7 +3235,7 @@ def _build_desktop(config, project_dir: Path, output_dir: Path, *, emit_output: 
 
     # Prepare subprocess environment
     subprocess_env = os.environ.copy()
-    
+
     # For Nuitka on Linux, ensure patchelf is available
     if builder == "nuitka" and sys.platform == "linux":
         patchelf_path = shutil.which("patchelf")
@@ -3159,7 +3371,11 @@ def package_app(
     }
 
     if not config_path.exists():
-        payload["validation"] = {"ok": False, "warnings": [], "errors": [f"No forge.toml found in {project_dir}"]}
+        payload["validation"] = {
+            "ok": False,
+            "warnings": [],
+            "errors": [f"No forge.toml found in {project_dir}"],
+        }
         _handle_build_failure(payload, result_format)
 
     try:
@@ -3167,7 +3383,11 @@ def package_app(
 
         config = ForgeConfig.from_file(config_path)
     except Exception as exc:
-        payload["validation"] = {"ok": False, "warnings": [], "errors": [f"Failed to load config: {exc}"]}
+        payload["validation"] = {
+            "ok": False,
+            "warnings": [],
+            "errors": [f"Failed to load config: {exc}"],
+        }
         _handle_build_failure(payload, result_format)
 
     if output:
@@ -3180,7 +3400,9 @@ def package_app(
         _handle_build_failure(payload, result_format)
 
     try:
-        build_result = _build_desktop(config, project_dir, output_dir, emit_output=result_format == "table")
+        build_result = _build_desktop(
+            config, project_dir, output_dir, emit_output=result_format == "table"
+        )
     except subprocess.CalledProcessError as exc:
         payload["build"] = {
             "status": "failed",
@@ -3246,7 +3468,11 @@ def sign_app(
     }
 
     if not config_path.exists():
-        payload["validation"] = {"ok": False, "warnings": [], "errors": [f"No forge.toml found in {project_dir}"]}
+        payload["validation"] = {
+            "ok": False,
+            "warnings": [],
+            "errors": [f"No forge.toml found in {project_dir}"],
+        }
         _handle_build_failure(payload, result_format)
 
     try:
@@ -3254,7 +3480,11 @@ def sign_app(
 
         config = ForgeConfig.from_file(config_path)
     except Exception as exc:
-        payload["validation"] = {"ok": False, "warnings": [], "errors": [f"Failed to load config: {exc}"]}
+        payload["validation"] = {
+            "ok": False,
+            "warnings": [],
+            "errors": [f"Failed to load config: {exc}"],
+        }
         _handle_build_failure(payload, result_format)
 
     if output:
@@ -3268,7 +3498,9 @@ def sign_app(
 
     if rebuild:
         try:
-            payload["build"] = _build_desktop(config, project_dir, output_dir, emit_output=result_format == "table")
+            payload["build"] = _build_desktop(
+                config, project_dir, output_dir, emit_output=result_format == "table"
+            )
         except subprocess.CalledProcessError as exc:
             payload["build"] = {
                 "status": "failed",
@@ -3394,7 +3626,9 @@ def release_app(
 
     build_fn = _build_web if normalized_target == "web" else _build_desktop
     try:
-        build_result = build_fn(config, project_dir, output_dir, emit_output=result_format == "table")
+        build_result = build_fn(
+            config, project_dir, output_dir, emit_output=result_format == "table"
+        )
     except subprocess.CalledProcessError as exc:
         payload["build"] = {
             "status": "failed",
@@ -3544,7 +3778,9 @@ def doctor(
         ),
         (
             "frontend",
-            "ok" if project.get("frontend_exists") else ("error" if project["valid"] else "warning"),
+            "ok"
+            if project.get("frontend_exists")
+            else ("error" if project["valid"] else "warning"),
             project.get("frontend_path", "-"),
         ),
     ]
@@ -3576,8 +3812,13 @@ def _get_remediation_hints(payload: dict[str, Any]) -> list[str]:
     if checks.get("rust_core", {}).get("status") != "ok":
         hints.append("Compile the Rust core: cd forge-framework && maturin develop")
 
-    if checks.get("cargo", {}).get("status") != "ok" or checks.get("rustc", {}).get("status") != "ok":
-        hints.append("Install Rust toolchain: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
+    if (
+        checks.get("cargo", {}).get("status") != "ok"
+        or checks.get("rustc", {}).get("status") != "ok"
+    ):
+        hints.append(
+            "Install Rust toolchain: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        )
 
     if checks.get("maturin", {}).get("status") != "ok":
         hints.append("Install maturin: pip install maturin")
@@ -3719,7 +3960,9 @@ def support_bundle(
 @app.command("generate-types")
 def generate_types(
     path: Path = typer.Argument(Path("."), help="Project directory"),
-    output: Path = typer.Option(Path("src/forge-env.d.ts"), "--output", "-o", help="Output path for the d.ts file"),
+    output: Path = typer.Option(
+        Path("src/forge-env.d.ts"), "--output", "-o", help="Output path for the d.ts file"
+    ),
     format: str = typer.Option("text", "--format", help="Output format (text/json)"),
 ) -> None:
     """
@@ -3738,28 +3981,31 @@ def generate_types(
 
         # Load configuration
         config = ForgeConfig.from_file(project_dir / "forge.toml")
-        
+
         # Bypassing real GUI window creation by avoiding app.run()
         # Initializing ForgeApp will register internal commands and plugins
         _print_note("Introspecting runtime...", level="info")
         config_path = project_dir / "forge.toml"
         app = ForgeApp(str(config_path))
-        
+
         if hasattr(app, "bridge"):
             registry = app.bridge.get_command_registry()
             # Feed registry into TypeGenerator
             generator = TypeGenerator(registry)
             dts_content = generator.generate()
-            
+
             out_path = project_dir / output
             out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text(dts_content, encoding="utf-8")
-            
+
             _print_note(f"Extracted {len(registry)} IPC commands.", level="ok")
             _print_command_result(
-                "Definitions Ready", "Path", str(output), footer=f"Saved {len(dts_content.splitlines())} lines."
+                "Definitions Ready",
+                "Path",
+                str(output),
+                footer=f"Saved {len(dts_content.splitlines())} lines.",
             )
-            
+
             if format == "json":
                 _machine_readable_print({"typegen": "success", "file": str(out_path)})
         else:
@@ -3812,7 +4058,9 @@ def _copy_template(
                 shutil.copy2(item, dest)
 
 
-def _write_frontend_workspace_files(project_dir: Path, template: str, name: str, tailwind: bool = False) -> None:
+def _write_frontend_workspace_files(
+    project_dir: Path, template: str, name: str, tailwind: bool = False
+) -> None:
     package_name = _slugify(name)
     package_json_path = project_dir / "package.json"
     vite_config_path = project_dir / "vite.config.mjs"
@@ -3843,14 +4091,11 @@ def _write_frontend_workspace_files(project_dir: Path, template: str, name: str,
         plugin_import = 'import { svelte } from "@sveltejs/vite-plugin-svelte"\n'
         plugin_usage = "svelte(), "
 
-
     if tailwind:
-        dev_dependencies.update({
-            "tailwindcss": "^3.4.1",
-            "postcss": "^8.4.38",
-            "autoprefixer": "^10.4.19"
-        })
-        
+        dev_dependencies.update(
+            {"tailwindcss": "^3.4.1", "postcss": "^8.4.38", "autoprefixer": "^10.4.19"}
+        )
+
         # Write Tailwind config
         tailwind_config_content = """/** @type {import('tailwindcss').Config} */
 export default {
@@ -3864,7 +4109,7 @@ export default {
 }
 """
         (project_dir / "tailwind.config.js").write_text(tailwind_config_content, encoding="utf-8")
-        
+
         # Write PostCSS config
         postcss_config_content = """export default {
   plugins: {
@@ -3874,21 +4119,20 @@ export default {
 }
 """
         (project_dir / "postcss.config.js").write_text(postcss_config_content, encoding="utf-8")
-        
+
         # Inject tailwind directives into main css file
         css_file = project_dir / "src" / "frontend" / "index.css"
         if template in ["vue", "svelte", "plain"]:
             css_file = project_dir / "src" / "frontend" / "style.css"
-        
+
         if css_file.exists():
             original_css = css_file.read_text("utf-8")
             css_file.write_text(
                 "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n" + original_css,
-                encoding="utf-8"
+                encoding="utf-8",
             )
 
     package_json = {
-
         "name": package_name,
         "private": True,
         "version": "1.0.0",
@@ -3897,29 +4141,29 @@ export default {
             "dev": "vite",
             "build": "vite build",
             "preview": "vite preview",
-            "forge:dev": "forge dev",
-            "forge:build": "forge build",
         },
         "dependencies": dependencies,
         "devDependencies": dev_dependencies,
     }
-    package_json_path.write_text(json.dumps(package_json, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    package_json_path.write_text(
+        json.dumps(package_json, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     vite_config_path.write_text(
-        "import { defineConfig } from \"vite\"\n"
+        'import { defineConfig } from "vite"\n'
         + plugin_import
         + 'import { forgeVitePlugin } from "@forgedesk/vite-plugin"\n\n'
         + "export default defineConfig({\n"
-        + "  root: \"src/frontend\",\n"
+        + '  root: "src/frontend",\n'
         + "  plugins: ["
         + plugin_usage
         + "forgeVitePlugin()],\n"
         + "  build: {\n"
-        + "    outDir: \"../../dist/static\",\n"
+        + '    outDir: "../../dist/static",\n'
         + "    emptyOutDir: true,\n"
         + "  },\n"
         + "  server: {\n"
-        + "    host: \"127.0.0.1\",\n"
+        + '    host: "127.0.0.1",\n'
         + "    port: 5173,\n"
         + "  },\n"
         + "})\n",
@@ -3931,16 +4175,13 @@ def _inject_dev_server_defaults(config_path: Path, package_manager: str = "npm")
     content = config_path.read_text(encoding="utf-8")
     if "dev_server_command" in content:
         return
-    marker = "[dev]\nfrontend_dir = \"src/frontend\"\nhot_reload = true\nport = 5173\n"
+    marker = '[dev]\nfrontend_dir = "src/frontend"\nhot_reload = true\nport = 5173\n'
     replacement = (
         marker
         + f'dev_server_command = "{package_manager} run dev"\n'
         + 'dev_server_url = "http://127.0.0.1:5173"\n'
     )
     config_path.write_text(content.replace(marker, replacement), encoding="utf-8")
-
-
-
 
 
 def _setup_python_env(project_dir: Path) -> None:
@@ -4016,20 +4257,18 @@ def _setup_python_env(project_dir: Path) -> None:
         return
 
     _print_note("Installing Python dependencies...", level="ok")
-    
-    # Check if we are running in the framework source to do an editable install
-    cli_dir = Path(__file__).resolve().parent
-    repo_root = cli_dir.parent
-    
-    deps = ["fastapi", "uvicorn", "rich", "cryptography", "msgspec", "msgpack", "watchfiles"]
-    
-    # If Cargo.toml or pyproject.toml is in repo_root, assume editable install
-    if (repo_root / "pyproject.toml").exists() and (repo_root / "Cargo.toml").exists():
-        deps.append("-e")
-        deps.append(str(repo_root))
-    else:
-        deps.append("forge-framework")
-    
+
+    deps = [
+        "forgedesk",
+        "fastapi",
+        "uvicorn",
+        "rich",
+        "cryptography",
+        "msgspec",
+        "msgpack",
+        "watchfiles",
+    ]
+
     try:
         subprocess.run(
             [uv_path, "pip", "install", "--python", str(python_exe), *deps],
@@ -4039,6 +4278,21 @@ def _setup_python_env(project_dir: Path) -> None:
         _print_note("Python environment configured successfully", level="ok")
     except subprocess.CalledProcessError as e:
         _print_note(f"Failed to install dependencies: {e}", level="warning")
+
+
+def _create_forge_wrapper(project_dir: Path) -> None:
+    """Create a ./forge wrapper script that uses the project's .venv."""
+    venv_dir = project_dir / ".venv"
+    if sys.platform == "win32":
+        wrapper_path = project_dir / "forge.cmd"
+        script_content = f'@echo off\n"{venv_dir / "Scripts" / "forge.exe"}" %*\n'
+    else:
+        wrapper_path = project_dir / "forge"
+        script_content = f'#!/bin/sh\n"{venv_dir / "bin" / "forge"}" "$@"\n'
+    wrapper_path.write_text(script_content, encoding="utf-8")
+    if sys.platform != "win32":
+        wrapper_path.chmod(0o755)
+
 
 def _create_placeholder_icon(path: Path) -> None:
     """
