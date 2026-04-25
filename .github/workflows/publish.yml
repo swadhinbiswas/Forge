@@ -102,14 +102,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            build-essential
+            build-essential \
+            libxdo-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev
 
       - name: Build wheels (Maturin)
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          manylinux: auto
+          manylinux: off
 
       - name: Verify wheel
         run: |
