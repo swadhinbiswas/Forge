@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PROJECT_NAME}}</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="astro-bg">
+        <div class="stars"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <div class="logo">🚀</div>
+            </div>
+            <h1>{{PROJECT_NAME}}</h1>
+            <p class="tagline">Built with Astro + Forge + Python</p>
+        </header>
+
+        <main>
+            <section class="card glass">
+                <div class="card-header">
+                    <div class="dot-group">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <h2>Command Execution</h2>
+                </div>
+                <div class="card-body">
+                    <p class="desc">Enter a name to call the <code>greet</code> python command via IPC.</p>
+                    <div class="input-group">
+                        <input type="text" id="nameInput" placeholder="Enter your name..." autocomplete="off">
+                        <button id="greetBtn">Run</button>
+                    </div>
+                    <div id="greetResult" class="result output-box"></div>
+                </div>
+            </section>
+
+            <section class="card glass">
+                <div class="card-header">
+                    <div class="dot-group">
+                        <span class="dot red"></span>
+                        <span class="dot yellow"></span>
+                        <span class="dot green"></span>
+                    </div>
+                    <h2>System Telemetry</h2>
+                </div>
+                <div class="card-body">
+                    <p class="desc">Fetching live diagnostics seamlessly from Python.</p>
+                    <button id="sysInfoBtn" class="secondary-btn">Fetch System Info</button>
+                    <div id="sysInfoResult" class="result output-box"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by <strong>Astro</strong> + <strong>Forge</strong></p>
+        </footer>
+    </div>
+    
+    <script type="module" src="main.js"></script>
+</body>
+</html>

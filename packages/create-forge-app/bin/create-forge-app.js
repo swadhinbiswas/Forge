@@ -119,14 +119,14 @@ function findLauncher() {
   }
 
   const installAttempts = [
-    ["pip", "install", "--python", runtimePython, "--index-url", "https://pypi.org/simple", "forge-framework"],
-    ["pip", "install", "--python", runtimePython, "forge-framework"],
+    ["pip", "install", "--python", runtimePython, "--index-url", "https://pypi.org/simple", "forgedesk"],
+    ["pip", "install", "--python", runtimePython, "forgedesk"],
     [
       "pip",
       "install",
       "--python",
       runtimePython,
-      "git+https://github.com/swadhinbiswas/Forge.git",
+      "git+https://github.com/swadhinbiswas/ForgeDesk.git",
     ],
   ];
 
