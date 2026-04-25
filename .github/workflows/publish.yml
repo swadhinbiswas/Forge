@@ -117,7 +117,7 @@ jobs:
       - name: Verify wheel
         run: |
           python -m pip install twine
-          python -m twine check dist/*
+          python -m twine check dist/*.whl dist/*.tar.gz
 
       - name: Generate checksums
         run: |
@@ -157,7 +157,7 @@ jobs:
       - name: Verify sdist
         run: |
           python -m pip install twine
-          python -m twine check dist/*
+          python -m twine check dist/*.whl dist/*.tar.gz
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4
@@ -237,10 +237,19 @@ jobs:
           FAILED=0
           for pkg in @forgedesk/api @forgedesk/cli @forgedesk/vite-plugin @forgedesk/create-forge-app; do
             echo "🔍 Checking $pkg@$VERSION..."
-            if npm view "$pkg@$VERSION" version &>/dev/null; then
-              echo "✅ $pkg@$VERSION is available on npm"
-            else
-              echo "❌ $pkg@$VERSION NOT found on npm"
+            RETRY=0
+            while [ $RETRY -lt 12 ]; do
+              if npm view "$pkg@$VERSION" version &>/dev/null; then
+                echo "✅ $pkg@$VERSION is available on npm"
+                break
+              else
+                echo "⏳ Waiting for propagation (attempt $((RETRY+1))/12)..."
+                sleep 10
+                RETRY=$((RETRY+1))
+              fi
+            done
+            if [ $RETRY -eq 12 ]; then
+              echo "❌ $pkg@$VERSION NOT found on npm after 2 minutes"
               FAILED=1
             fi
           done
