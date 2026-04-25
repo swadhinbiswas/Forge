@@ -1,9 +1,9 @@
 {
   "name": "@forgedesk/create-forge-app",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Scaffold Forge applications from npm",
   "license": "MIT",
-  "homepage": "https://forge-framework.dev",
+  "homepage": "https://forgedesk.eu.cc",
   "repository": {
     "type": "git",
     "url": "https://github.com/swadhinbiswas/ForgeDesk.git",

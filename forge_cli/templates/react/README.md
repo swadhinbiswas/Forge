@@ -62,4 +62,4 @@ await invoke("todo_add", { text: "Learn React" });
 
 ## Learn More
 
-- [Forge Docs](https://forge-framework.dev/docs)
+- [Forge Docs](https://forgedesk.eu.cc/docs)

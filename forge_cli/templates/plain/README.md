@@ -82,4 +82,4 @@ Edit `forge.toml` to customize:
 
 ## Learn More
 
-- [Forge Documentation](https://forge-framework.dev/docs)
+- [Forge Documentation](https://forgedesk.eu.cc/docs)

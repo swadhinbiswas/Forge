@@ -10,7 +10,7 @@ include = ["forge/js/*.js"]
 
 [project]
 name = "forgedesk"
-version = "3.0.2"
+version = "3.0.3"
 description = "Build powerful, cross-platform desktop and web applications using Python 3.14+ (NoGIL) and web technologies"
 readme = "README.md"
 license = {text = "MIT"}
@@ -81,7 +81,7 @@ forge = "forge_cli.main:main"
 
 [project.urls]
 Homepage = "https://github.com/swadhinbiswas/ForgeDesk"
-Documentation = "https://forge-framework.dev/docs"
+Documentation = "https://forgedesk.eu.cc/docs"
 Repository = "https://github.com/swadhinbiswas/ForgeDesk"
 Issues = "https://github.com/swadhinbiswas/ForgeDesk/issues"
 

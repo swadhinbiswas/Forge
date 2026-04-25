@@ -40,4 +40,4 @@ await invoke("todo_add", { text: "Build with Astro" });
 
 ## Learn More
 
-- [Forge Docs](https://forge-framework.dev/docs)
+- [Forge Docs](https://forgedesk.eu.cc/docs)

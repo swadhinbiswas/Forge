@@ -1,9 +1,9 @@
 {
   "name": "@forgedesk/api",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Typed JavaScript API bindings for Forge desktop applications",
   "license": "MIT",
-  "homepage": "https://forge-framework.dev",
+  "homepage": "https://forgedesk.eu.cc",
   "repository": {
     "type": "git",
     "url": "https://github.com/swadhinbiswas/ForgeDesk.git",
