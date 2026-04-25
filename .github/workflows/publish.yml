@@ -183,6 +183,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Fix lockfile registry
+        run: |
+          # package-lock.json was generated with npmmirror (Chinese mirror)
+          # Rewrite to official npm registry for GitHub Actions
+          sed -i 's|https://registry.npmmirror.com|https://registry.npmjs.org|g' package-lock.json
+
       - name: Install dependencies
         run: npm ci
 
@@ -245,7 +251,7 @@ jobs:
   # ──────────────────────────────────────────────────────────
   publish-pypi:
     name: Publish PyPI
-    needs: [build-wheels, build-sdist, publish-npm]
+    needs: [build-wheels, build-sdist]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
