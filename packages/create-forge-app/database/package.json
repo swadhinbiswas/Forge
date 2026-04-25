@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "@forgedesk/api": "^3.0.0"
+    "@forgedesk/api": "^3.0.1"
   },
   "devDependencies": {
-    "@forgedesk/vite-plugin": "^3.0.0",
+    "@forgedesk/vite-plugin": "^3.0.1",
     "vite": "^6.2.0"
   },
   "name": "database",
