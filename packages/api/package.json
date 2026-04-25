@@ -6,7 +6,7 @@
   "homepage": "https://forge-framework.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/swadhinbiswas/Forge.git",
+    "url": "https://github.com/swadhinbiswas/ForgeDesk.git",
     "directory": "packages/api"
   },
   "type": "module",
