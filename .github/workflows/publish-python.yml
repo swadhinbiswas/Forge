@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
 
 env:
+  MATURIN_PEP517_ARGS: "--manylinux off"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -44,7 +45,7 @@ jobs:
 
       - name: Build wheel and sdist
         run: |
-          uv run maturin build --release --out dist
+          uv run maturin build --release --out dist --manylinux auto
           uv run python -m build --sdist --outdir dist
 
       - name: Check distributions

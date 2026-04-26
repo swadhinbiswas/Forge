@@ -24,6 +24,7 @@ permissions:
   security-events: write
 
 env:
+MATURIN_PEP517_ARGS: "--manylinux off"
 CARGO_TERM_COLOR: always
 CARGO_INCREMENTAL: 0
 # Only treat warnings as errors on Linux (muda unsafe warnings on Windows are pedantic)

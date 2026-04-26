@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 env:
+  MATURIN_PEP517_ARGS: "--manylinux off"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
