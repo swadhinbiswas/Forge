@@ -149,9 +149,8 @@ jobs:
 
       - name: Verify wheel
         run: |
-          uv pip install twine
-          uv run twine check dist/*.whl 2>$null || true
-          uv run twine check dist/*.tar.gz 2>$null || true
+          uvx twine check dist/*.whl 2>$null || true
+          uvx twine check dist/*.tar.gz 2>$null || true
 
       - name: Generate checksums
         run: |
@@ -198,9 +197,8 @@ jobs:
 
       - name: Verify sdist
         run: |
-          uv pip install twine
-          uv run twine check dist/*.whl 2>$null || true
-          uv run twine check dist/*.tar.gz 2>$null || true
+          uvx twine check dist/*.whl 2>$null || true
+          uvx twine check dist/*.tar.gz 2>$null || true
 
       - name: Upload sdist
         uses: actions/upload-artifact@v4

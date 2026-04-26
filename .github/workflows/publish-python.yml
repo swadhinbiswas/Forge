@@ -35,6 +35,7 @@ jobs:
 
       - name: Install build tooling
         run: |
+          uv venv
           uv pip install --upgrade pip
           uv pip install maturin build twine
 
@@ -43,8 +44,8 @@ jobs:
 
       - name: Build wheel and sdist
         run: |
-          python -m maturin build --release --out dist
-          python -m build --sdist --outdir dist
+          uv run maturin build --release --out dist
+          uv run python -m build --sdist --outdir dist
 
       - name: Check distributions
         run: uv run twine check dist/*.whl dist/*.tar.gz
